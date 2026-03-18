@@ -14,7 +14,12 @@ def exportSimulationData(data:dict,filepath:str):
     with open(filepath,'w',encoding="utf-8") as f:
         dump(data,f)
 
+def createFolder(study):
+    os.chdir(os.path.dirname(os.path.realpath(__file__)))
+    os.makedirs('results/'+study.study_name)
+
 def logResults(study):
+    os.chdir(os.path.dirname(os.path.realpath(__file__)))
     Trials = study.get_trials()
     nTrials = len(Trials)
     # Completed trials
@@ -33,9 +38,6 @@ def logResults(study):
     nfTrials = len(study.get_trials(states=[TrialState.FAIL]))
 
     # Results Logging
-    os.chdir(os.path.dirname(os.path.realpath(__file__)))
-    os.makedirs('results/'+study.study_name)
-
     logging.basicConfig(level=logging.INFO,
                         format='%(message)s',
                         filename='results/'+study.study_name+'/Summary.txt',
@@ -65,11 +67,31 @@ def logResults(study):
     else:
         cTrials.sort(key=lambda x:x.value)
         for trial in cTrials:
-            logging.info('                         Trial number : %d, Value : %f, Duration : %f', trial.number, trial.value, trial.duration)
+            logging.info('                         Trial number : %d, Value : %f, Duration : %s', trial.number, trial.value, str(trial.duration))
             data={}
-            param.sLegCL.updateFromOptuna(trial.params)
-            param.lLegCL.updateFromOptuna(trial.params)
-            data[param.sLName] = param.sLegCL.asArray()
-            data[param.lLName] = param.lLegCL.asArray()
-            exportSimulationData(data,'results/'+study.study_name+'/'+str(trial.number)+".json")
-    study.trials_dataframe().to_csv('results/'+study.study_name+'/results.csv')
+            param.sCL.setFromOptuna(trial.params)
+            param.lCL.setFromOptuna(trial.params)
+            data[param.sLName] = param.sCL.getControlPoints()
+            data[param.lLName] = param.lCL.getControlPoints()
+            
+            os.chdir(os.path.dirname(os.path.realpath(__file__)))
+            os.makedirs(f'results/{study.study_name}/{trial.number}')
+            savePath = os.path.dirname(os.path.realpath(__file__))+f'/results/{study.study_name}/{trial.number}/'
+
+            exportSimulationData(data,savePath + 'params.json')
+            
+            param.sCL.exportSTL(path = savePath)
+            param.sCL.exportPlot(path = savePath,
+                                 title=f'Leg : {param.sCL.name}, study : {study.study_name}, trial : {trial.number}')
+            
+            param.lCL.exportSTL(path = savePath)
+            param.lCL.exportPlot(path = savePath,
+                                 title=f'Leg : {param.lCL.name}, study : {study.study_name}, trial : {trial.number}')
+            
+    study.trials_dataframe().to_csv(savePath + 'results.csv')
+
+def appendDataset(study,name):
+    os.chdir(os.path.dirname(os.path.realpath(__file__)))
+    df=study.trials_dataframe()
+    df=df[df.state=="COMPLETE"]
+    df.to_csv(f'results/{name}', header=False, mode='a')

@@ -10,9 +10,9 @@ def operationsSequence(sequence:str,defaultOperationDuration:float=0)->dict:
     for idx, operation in enumerate(sequenceList):
         if idx <len(sequenceList)-1 and idx%2==0:
             if sequenceList[idx+1] == '':
-                duration[operation+str(ids)] = defaultOperationDuration
+                duration[operation] = defaultOperationDuration #operation+str(ids)
             else:
-                duration[operation+str(ids)] = float(sequenceList[idx+1])
+                duration[operation] = float(sequenceList[idx+1]) #operation+str(ids)
             ids+=1
     return duration
 
@@ -21,7 +21,6 @@ def performOperations(position, movementSequence:str, displacementLimits:dict, f
     simulationDuration = sum(sequence.values())
     indices = {'tx':0,'ty':1,'tz':2,'rx':3,'ry':4,'rz':5}
     progressDuration = 0
-
     for movement, operationDuration in sequence.items():
         progressDuration += operationDuration
         movement = movement[0:3]

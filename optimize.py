@@ -6,7 +6,7 @@ import argparse
 #import param
 import optuna
 import optunahub
-from processing import logResults
+from processing import logResults, createFolder, appendDataset
 
 # Argument parser
 parser = argparse.ArgumentParser(description='Optimize an objective function.')
@@ -43,16 +43,19 @@ study = optuna.create_study(storage = optuna.storages.InMemoryStorage(),
 
 # Optimize the objective function
 print(o.objective.__doc__)
+createFolder(study)
 study.optimize(func=o.objective,
                gc_after_trial=True, #Auto garbage clean to not saturate the memory
                # n_trials=args.nTrials,
+               # n_jobs=5,
                show_progress_bar=True,
-               callbacks=[optuna.study.MaxTrialsCallback(n_trials=args.nTrials,  # Keeps running until 10 trials are completed
-                                                         states=[optuna.trial.TrialState.COMPLETE])]
+               callbacks=[optuna.study.MaxTrialsCallback(n_trials=50,  # Keeps running until 10 trials are completed
+                                                          states=(optuna.trial.TrialState.COMPLETE,))]
                )
 
 # Log optimization results
 logResults(study)
+appendDataset(study,'Dataset.csv')
 
 # Visualize the optimization history
 fig = optuna.visualization.plot_optimization_history(study)

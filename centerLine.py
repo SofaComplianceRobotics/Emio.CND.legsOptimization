@@ -4,497 +4,594 @@ Returns:
     _type_: beam vector
 """
 from __future__ import annotations
-from importlib import import_module
-
 import os
-import sys
-from subprocess import run,DEVNULL,PIPE
-
-def checkModule(module:str,libraryName:str='',gitLink:str=''):
-    try:
-        import_module(module)
-    except ImportError:
-        import pip
-        if not libraryName and not gitLink:
-            pip.main(['install',module])
-        elif not libraryName:
-            pip.main(['install','git+'+gitLink])
-        elif not gitLink:
-            pip.main(['install',libraryName])
-    
-checkModule('beziers',gitLink='git+https://github.com/simoncozens/beziers.py/tree/main/src/beziers')
-checkModule('gmsh')
-checkModule('solid2',libraryName='solidpython2')
-checkModule('matplotlib')
-checkModule('cadquery')
-#checkModule('numpy')
-checkModule('scipy')
-checkModule('pyclipper')
-
 from math import pi,sin,cos, floor
-import gmsh
+from tools import checkModule
 
+checkModule('matplotlib')
+import matplotlib.pyplot as plt
+
+checkModule('scipy')
 from scipy.spatial.transform import Rotation
 
-from beziers.point import Point
-from beziers.cubicbezier import CubicBezier
-from beziers.path import BezierPath
+checkModule('gmsh')
+import gmsh
 
-from solid2.extensions.bosl2 import rect, bezpath_curve, path_sweep
-from solid2.core import scad_render_to_file
-
+checkModule('pyclipper')
+checkModule('cadquery')
 import cadquery as cq
 
-import random
-import string
-
-
-match os.name:
-    case 'nt':
-        OPENSCAD_DIRECTORY = 'C:/Program Files/OpenSCAD/' 
-    case 'posix':
-        OPENSCAD_DIRECTORY = '/usr/bin/openscad'
+checkModule('beziers',gitLink='https://github.com/simoncozens/beziers.py.git')
+from beziers.cubicbezier import CubicBezier
+from beziers.point import Point
+from beziers.path import BezierPath
 
 CAD_DIRECTORY = os.path.dirname(os.path.realpath(__file__))+'/../EmioLabs/assets/data/meshes/legs/'
-FIG_DIRECTORY = os.path.dirname(os.path.realpath(__file__))+'/data/figs/'
-STL_DIRECTORY = os.path.dirname(os.path.realpath(__file__))+'/data/cad/'
+FIG_DIRECTORY = os.path.dirname(os.path.realpath(__file__))+'/data/'#+'/data/figs/'
+STL_DIRECTORY = os.path.dirname(os.path.realpath(__file__))#+'/data/cad/'
 
 def main():
     
     os.system("clear||cls")
+    sCP = [[[0,0],20,90],
+          [[50,50],50,-20],
+          [[75,75],20,90]]
+          
+    #debug = {'plot':'','time':'','cad':True}
 
-    legName = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
-    legCrossSection = [10,5]
-    pulley =[22.5,0]
-    numberOfBeams = 10
+    l = CenterLine(name='test',
+                      crossSection=[10,5],
+                      numberOfPoints=4,
+                      controlPoints=sCP,
+                      origin=[0,-22.5]
+                      )
+    l.exportSTLGmsh(path="C:/Users/Ahmed Amine Chafik/Softs",debug=True)
     
-    # leg=[[[x,y],rightHandleLength,rightHandleAngle,leftHandleLength,leftHandleAngle],.....]
-    # legCenterLine=[[[0,0],200,90],
-    #                  [[100,100],100,-45],
-    #                  [[250,200],200,90]]
-    # legCenterLine = [[[0,0],20,90],
-    #                  [[40,40],50,-45,20,40],
-    #                  [[75,75],20,90]]
-    # legCenterLine = [[[0,0],20,90],
-    #                  [[50,50],50,-45],
-    #                  [[75,75],20,90]]
-    data = {'sPt.rL0': 64.92305858998935, 'sPt.rL1': 68.11944020329142, 'sPt.x1': 39.14679130942243, 'sPt.y1': 32.58772944462524, 'sPt.rA1': 9.501390743726446, 'sPt.rL2': 69.51926420437991, 'lPt.rL0': 29.29504519912233, 'lPt.rL1': 67.4816563447648, 'lPt.x1': 46.475222143426365, 'lPt.y1': 42.21131726554306, 'lPt.rA1': -8.195176261888683, 'lPt.rL2': 65.28619633249619}
+    #l.plot()
     
-    l = legCenterLine('s',3)
-    l.updateFromOptuna(data)
-    debug = {'plot':'pre','time':'all','cad':True}
-    beams=generateLeg(legName,
-                      legCrossSection,
-                      l.asArray(),
-                      numberOfBeams,
-                      pulley,
-                      debug)
-
-def generateLeg(legName:str, legCrossSection:list[int|float], legCenterLine:list[list[list[int|float]|int|float]], numberOfBeams:int, origin:list[float|int]=[0,0], debug:dict = {'plot':'','cad':False,'time':''})->list[list[int|float]]:
-    """Generates beams coordinates of a composite cubic bézier curve, given a leg vector and number of beams
-
+class _CurvePoint:
+    """
+    _summary_
+        Python class that represent a Bézier point.
     Args:
-        leg (list[list[list[int  |  float]]]): List describing the differents properties of the interpolation points.
-        numberOfBeams (int): The number of beams.
-
-    Returns:
-        beams (list[list[float]|float]): Coordinates composite cubic bézier curve expressed in [[x y z qx qy qz qw],...].
-    """  
-
-    import time
-
-    start=time.perf_counter()
-    if origin and origin != [0,0]:
-        legCenterLine = changeLegOrigin(legCenterLine,origin)
-    points, smooth = generateControlPoints(legCenterLine)
-    path = generateBezierPath(points)
-    
-    if debug['plot']=='pre':
-        plotCurvesMatplotlib(legName, path)
-    
-    if isPathNotValid(path):
-         return
-    
-    beams = generateBeams(path, numberOfBeams)
-    beamTime = time.perf_counter()-start
-
-    if not generateSTL(legName, path, legCrossSection, not smooth, debug['cad']):
-        return
-    
-    stlTime = time.perf_counter() - beamTime
-    if debug['plot']=='post': 
-        plotCurvesMatplotlib(legName, path)
-    if debug['time'] =='beam' or debug['time'] =='all':
-        print("Beams generation : {:0.6f} s, {:0.2f} %".format(beamTime, beamTime/(stlTime+beamTime)*100))
-    if debug['time'] =='cad' or debug['time'] =='all':
-        print("STL generation   : {:0.6f} s, {:0.2f} %".format(stlTime, stlTime/(stlTime+beamTime)*100))
-    return beams
-
-def changeLegOrigin(legCenterLine:list[list[list[int|float]|int|float]], origin:list[int|float])->list[list[list[int|float]|int|float]]:
-    dx = origin[0]-legCenterLine[0][0][0]
-    dy = origin[1]-legCenterLine[0][0][1]
-    
-    for point in legCenterLine:
-        point[0]=[point[0][0]+dx, point[0][1]+dy]
-    return legCenterLine
-
-def generateControlPoints(legCenterLine:list[list[list[int|float]|int|float]])->tuple[list[curvePoint]|bool]:
-    """Generates list of interpolation points from leg vector
-
-    Args:
-        leg (list[list[list[int  |  float]]]): List describing the differents properties of the interpolation points.
-
-    Returns:
-        points (list[curvePoint]): List of interpolated points
+        idx (int): An integer index or identifier.
+        distanceUnit (str) : the distance unit (mm/cm), default to mm.
+        angleUnit (str) : the angle unit (rad/deg), default to deg.
+        coordinates (list[float,float]) : point coordinates [x, y].
+        x (float) : x coordinate of the point.
+        y (float) : y coordinate of the point.
+        rightHandleLength (float) : the length of the right handle (tangent), default to 0.
+        leftHandleLength (float) : the length of the left handle (tangent), default to None.
+        rightHandleAngle (float) : the angle of the right handle (tangent), default to 0.
+        leftHandleAngle (float) : the angle of the left handle (tangent), default to None.        
     """    
-    points:list[curvePoint]
-    points=[]
-    smooth = True
-    for idx, point in enumerate(legCenterLine):
-        
-        # if len(point)==3:
-        #     point.extend([point[1],point[2]+180])
-        # else:
-        #     smooth =False
-
-        point.insert(0,idx)
-        points.append(curvePoint(*point,angleUnit='deg'))
-
-    return points, smooth
-
-def generateBezierPath(curvePoints:list[curvePoint])->BezierPath:
-    """Generates a composite cubic Bézier curve given a set of curve points
-
-    Args:
-        curvePoints (list[curvePoint]): List of interpolation points
-
-    Returns:
-        curves (list[Part.BezierCurve]): Composite cubic Bézier curve, List of independent cubic Bézier curves
-    """    
-    curves: list[CubicBezier]
-    curves = []
-        
-    for idx in range(len(curvePoints)-1):
-        curves.append(CubicBezier(Point(*curvePoints[idx].coordinates),
-                                  Point(*curvePoints[idx].rightPole),
-                                  Point(*curvePoints[idx+1].leftPole),
-                                  Point(*curvePoints[idx+1].coordinates)))
     
-    path = BezierPath.fromSegments(curves)
-    path.closed=False
-    path = path.removeIrrelevantSegments()
-
-    return path
-
-def generateBeams(path:BezierPath, numberOfBeams:int)->list[list[int|float]]:
-    """Generates beams coordinates of a composite cubic bézier curve, given a set of cubic Bézier curves and number of beams
-
-    Args:
-        curves (list[CubicBezier]): List of cubic bezier curves created using Beziers.py Library.
-        numberOfBeams (int):The number of beams.
-
-    Returns:
-        beams (list[list[int|float]]): Coordinates composite cubic bézier curve expressed in [[x y z qx qy qz qw],...]
-    """    
-    beams = []
-    
-    beamStep = path.length/(numberOfBeams-1)    
-    curves = path.asSegments()
-    remainingDistance = beamStep #Forcing starting distance to be 0
-
-    for curve in curves:
-        numberOfBeamsPerCurve = floor(curve.lengthAtTime(1)/beamStep)+1
-
-        startingDistance = beamStep-remainingDistance
-        remainingDistance = (curve.lengthAtTime(1)-startingDistance) % beamStep
-
-        startParameter = startingDistance/curve.lengthAtTime(1)
-        stepParameter = beamStep/curve.lengthAtTime(1)
-         
-        curveParameters=[startParameter+stepParameter*i for i in range(numberOfBeamsPerCurve)] 
-
-        for parameter in curveParameters:
-            
-            point = curve.pointAtTime(parameter)
-            theta = curve.tangentAtTime(parameter).angle-pi/2
-
-            quaternion = Rotation.from_euler('z', -pi/2).inv() * Rotation.from_euler('y', theta) * Rotation.from_euler('x', pi)
-            quaternion = quaternion.as_quat()
-
-            beams.append([0,point.y,point.x,*quaternion.astype(list)])
-
-    return beams
-    
-def generateSTL(legName:str, sweepPath:BezierPath, legCrossSection:list[int|float], smooth:bool, debug:bool=False)->bool:
-    os.chdir(CAD_DIRECTORY)
-    if smooth:
-        return generateSTLGmsh(legName, sweepPath, legCrossSection, debug)
-    else:
-        return generateSTLCadQuery(legName, sweepPath, legCrossSection, debug)
-         
-        #generateShapeOpenScad(legName, sweepPath, legCrossSection, debug)
-
-def generateShapeOpenScad(legName:str, sweepPath:BezierPath, legCrossSection:list[int|float], debug:bool=False):              
-    crossSection = rect(legCrossSection)
-    sweepPath = [[0, point.y,point.x] for point in sweepPath.asNodelist()]
-    volume = path_sweep(crossSection,bezpath_curve(sweepPath))   
-    scad_render_to_file(volume,legName+'.scad')
-    command = OPENSCAD_DIRECTORY + 'openscad --export-format=binstl -o ' + legName + '.stl ' + legName + '.scad'
-    test = run(command,stdout=PIPE,stderr=DEVNULL)
-    print(test)
-    if not debug:
-        os.remove(legName+'.scad')
-
-def generateSTLGmsh(legName:str, sweepPath:BezierPath, legCrossSection:list[int|float], debug:bool=False)->bool:
-
-    curves=sweepPath.asSegments()
-    initilizeGmsh(debug)
-    occGeo = gmsh.model.occ() #OpenCascade kernel
-    corner = [-legCrossSection[0]/2, -legCrossSection[1]/2+curves[0].start.y, curves[0].start.x]
-    crossSection= [(2,occGeo.addRectangle(*corner,*legCrossSection))]
-    occGeo.rotate(crossSection,0,curves[0].start.y,curves[0].start.x,1,0,0,angle=pi/2)
-    bezier = [(1,occGeo.addBezier([occGeo.addPoint(0, curve.start.y, curve.start.x),
-                                   occGeo.addPoint(0, curve.points[1].y, curve.points[1].x),
-                                   occGeo.addPoint(0, curve.points[2].y, curve.points[2].x),
-                                   occGeo.addPoint(0, curve.end.y, curve.end.x)])
-                                   ) for curve in curves]
-    fusedBezier,_ = occGeo.fuse(bezier,bezier)
-    _,fusedBezierTag = zip(*fusedBezier)
-    
-    if len(fusedBezierTag)>1:
-        return False
-    
-    wireTag = occGeo.addWire(list(fusedBezierTag))
-    occGeo.addPipe(crossSection,wireTag)
-    occGeo.synchronize()
-    return renderMeshGmsh(legName,debug=debug)
-
-def generateSTLCadQuery(legName:str, sweepPath:BezierPath, legCrossSection:list[int|float], debug=False)->bool:
-    curves = sweepPath.asSegments()
-    start = curves[0].start
-    crossSection = cq.Workplane("XZ",origin=(0,start.y,start.x)).rect(*legCrossSection)
-    wire = cq.Workplane("YZ")
-    for curve in curves:
-        wire = wire.bezier([(curve.start.y,curve.start.x),
-                            (curve.points[1].y,curve.points[1].x),
-                            (curve.points[2].y,curve.points[2].x),
-                            (curve.end.y,curve.end.x)])
-    volume = crossSection.sweep(wire,multisection=True,transition='round').val()
-    
-    if volume.isValid() and not volume.isNull():
-        volume.exportBrep(legName+'.brep')
-        if not renderMeshGmsh(legName,'brep',debug):
-            return volume.exportStl(legName+'.stl')
-        else:
-            return True
-    else:
-        if debug:
-            volume.exportBrep(legName+'.brep')
-        return False
-
-def initilizeGmsh(debug:bool=False):
-    if not gmsh.isInitialized():
-        gmsh.initialize()
-
-        if debug:
-            gmsh.option.setNumber("General.Terminal", 1) #to capture every terminal event
-            gmsh.option.setNumber("General.Verbosity",2) # to debug or 99
-        else:
-            gmsh.option.setNumber("General.Terminal", 0)
-        
-        #gmsh.clear()
-        gmsh.option.setNumber("General.AbortOnError",1)
-        gmsh.option.setNumber('Mesh.Binary',1)
-        gmsh.option.setNumber('Mesh.MaxRetries',0)
-        gmsh.option.setNumber('Mesh.AlgorithmSwitchOnFailure',0)
-        gmsh.option.setNumber('Mesh.Algorithm', 8) #(1: MeshAdapt, 2: Automatic, 8: Frontal-Delaunay for Quads, 9: Packing of Parallelograms)
-
-        #gmsh.option.setNumber('Mesh.MeshSizeFromCurvatureIsotropic',1)
-        #gmsh.option.setNumber('Mesh.MeshSizeFromCurvature',30)
-        gmsh.option.setNumber('Mesh.MeshSizeFactor',0.25)
-
-def renderMeshGmsh(legName:str, inputExtension:str='', debug=False)->bool:
-
-    initilizeGmsh(debug)
-    
-    if inputExtension:
-        gmsh.open(legName+'.'+inputExtension)
-    gmsh.model.mesh.generate(2)
-    if debug:
-        gmsh.fltk.run() # to view the mesh
-    
-    if gmsh.logger.getLastError():
-        gmsh.finalize()
-        return False
-    else:
-        gmsh.write(legName+'.stl')
-        gmsh.finalize()
-        if not debug and inputExtension:
-            os.remove(legName+'.'+inputExtension)
-        return True
-
-def isPathNotValid(path:BezierPath)->bool:
-    
-    intersection = path.getSelfIntersections() # self-intersection Verification
-    
-    rightOffsetPath = path.offset(path.asSegments()[0].normalAtTime(0)*2.5)
-    rightOffsetPath.closed = False
-    rightOffsetIntersection = rightOffsetPath.getSelfIntersections() #pre sweep verification
-
-    leftOffsetPath = path.offset(path.asSegments()[0].normalAtTime(0)*-2.5)
-    leftOffsetPath.closed = False
-    leftOffsetIntersection = leftOffsetPath.getSelfIntersections() #pre sweep verification
-    
-    return bool(intersection) or bool(leftOffsetIntersection) or bool(rightOffsetIntersection)
-
-def plotCurvesMatplotlib(legName:str, path:BezierPath):
-    import matplotlib.pyplot as plt
-    _, ax = plt.subplots()
-    plt.title(legName)
-    ax.set_aspect(aspect="auto")
-    ax.grid(True)
-    path.plot(ax)
-    [line.set_color("red") for line in ax.lines]
-    plt.savefig(FIG_DIRECTORY+legName+'.png')
-    plt.show()
-
-
-class curvePoint:
-    global units
-    units = {'mm' : 0.1, 'cm' : 1, 'rad' : 1, 'deg' : pi/180}
-    def __init__(self, idx:int, coordinates:list[float], rightHandleLength:float=0, rightHandleAngle:float=0, leftHandleLength:float=0, leftHandleAngle:float=370, distanceUnit:str='cm', angleUnit:str='deg') -> None:
-        
+    def __init__(self, idx:int, coordinates:list[float], rightHandleLength:float=0, rightHandleAngle:float=0, leftHandleLength:float | None = None, leftHandleAngle:float | None=None, distanceUnit:str='mm', angleUnit:str='deg') -> None:
         self.idx = idx
         self.distanceUnit = distanceUnit
         self.angleUnit = angleUnit
-        self.coordinates = [x*units[distanceUnit] for x in coordinates]
-        [self.x, self.y] = self.coordinates
-        
-        self._setHandlesLengths(rightHandleLength,leftHandleLength)
-        self._setHandlesAngles(rightHandleAngle,leftHandleAngle)
-        self._setPoles()
+        self.coordinates = coordinates
 
-    def _setHandlesLengths(self,rightHandleLength,leftHandleLength,distanceUnit='cm'):
-        self.rightHandleLength = rightHandleLength*units[distanceUnit]
-        self.leftHandleLength = leftHandleLength*units[distanceUnit]
+        self.rightHandleAngle = rightHandleAngle
+        self.rightHandleLength = rightHandleLength
+   
+        self.leftHandleAngle = leftHandleAngle        
+        self.leftHandleLength = leftHandleLength
         
-        if leftHandleLength == 0:
-            self.leftHandleLength = rightHandleLength*units[distanceUnit] 
-        
-        if (abs(self.leftHandleLength-self.rightHandleLength) == 0):
+        self.sameHandleAngle : bool
+        self.sameHandleLength : bool
+
+        self._angCoeff : float
+        self._distCoeff : float
+
+        self.leftPole : list
+        self.rightPole : list
+
+        self._initCoeffs()
+        self._initCoor()
+        self._initFlagLength()
+        self._initLength()
+        self._initFlagAngle()
+        self._initAngle()  
+        self._initPoles()
+
+    def _initCoeffs(self,af='',at='rad',df='',dt='mm'):
+        """
+        _summary_
+            Updates conversion coefficent per unit
+        """
+        unitDict = {'mm' : 1, 'cm' : 10, 'rad' : 1, 'deg' : pi/180}
+        if af=='':
+            af = self.angleUnit
+        if df=='':
+            df = self.distanceUnit
+        self._angCoeff = unitDict[af]/unitDict[at]
+        self._distCoeff = unitDict[df]/unitDict[dt]
+
+    def _initCoor(self):
+        """
+        _summary_
+            Updates point coordinates.
+        """
+        self.coordinates = [x*self._distCoeff for x in self.coordinates]
+        [self.x, self.y] = self.coordinates
+    
+    def _initFlagLength(self):
+        """
+        _summary_
+            Determins if the handles have the samelength.
+        """
+        if self.leftHandleLength is None:
+            self.sameHandleLength = True        
+        elif abs(self.rightHandleLength-self.leftHandleLength) == 0:
             self.sameHandleLength = True
         else:
-            self.sameHandleLength = False   
-
-    def _setHandlesAngles(self,rightHandleAngle,leftHandleAngle,angleUnit='deg'):
-        self.rightHandleAngle = rightHandleAngle*units[angleUnit]
-        self.leftHandleAngle = leftHandleAngle*units[angleUnit]
-
-        if leftHandleAngle == 370:
-            self.leftHandleAngle = rightHandleAngle*units[angleUnit]+pi
-        
-        if (abs(self.leftHandleAngle-self.rightHandleAngle) == pi):
+            self.sameHandleLength = False
+    
+    def _initFlagAngle(self):
+        """
+        _summary_
+            Determins if the handles have the samelength.
+        """
+        if self.leftHandleAngle is None:
+            self.sameHandleAngle = True
+        elif abs(self.rightHandleAngle-self.leftHandleAngle) == pi:
             self.sameHandleAngle = True
         else:
-            self.sameHandleAngle = False   
+            self.sameHandleAngle = False
 
-    def _setPoles(self):
-        self.leftPole = [self.x+self.leftHandleLength*cos(self.leftHandleAngle), self.y+self.leftHandleLength*sin(self.leftHandleAngle)]
-        self.rightPole = [self.x+self.rightHandleLength*cos(self.rightHandleAngle), self.y+self.rightHandleLength*sin(self.rightHandleAngle)]
+    def _initLength(self):
+        """
+        _summary_
+            Updates/initializes both the left and right handles lengths.
+        """
+        self.rightHandleLength *= self._distCoeff
+        if self.sameHandleLength:
+            self.leftHandleLength = self.rightHandleLength
+        else:
+            self.leftHandleLength *= self._distCoeff
 
+    def _initAngle(self):
+        """
+        _summary_
+            Updates/initializes both the left and right handles angles.
+        """        
+        self.rightHandleAngle *= self._angCoeff
+        if self.sameHandleAngle:
+            self.leftHandleAngle = self.rightHandleAngle+pi
+        else:
+            self.leftHandleAngle *= self._angCoeff
+
+    def _initPoles(self):
+        """
+        _summary_
+            Updates/initializes the leftPole and the rightPole coordinates of the Bézier point
+        """        
+        self.leftPole = [self.x+self.leftHandleLength*cos(self.leftHandleAngle), 
+                         self.y+self.leftHandleLength*sin(self.leftHandleAngle)]
+        self.rightPole = [self.x+self.rightHandleLength*cos(self.rightHandleAngle), 
+                          self.y+self.rightHandleLength*sin(self.rightHandleAngle)]
+    
     def update(self,**kwargs) -> None:
-        """_summary_
+        """
+        _summary_
+            Updates the attributes of a bezier point, using keyword arguments.
         Args:
             idx (int): An integer index or identifier.
-            distanceUnit (str): The unit of distance (e.g., 'meters', 'kilometers').
-            angleUnit (str): The unit of angle (e.g., 'degrees', 'radians').
-            coordinates (list[float]): A tuple or list representing coordinates (x, y).
-            translation (list[float]): A tuple or list for translation values.
-            rotation (float): A float value for rotation.
-            handleLength (float): The length of the handle.
+            sameHandleAngle (bool): set to True if left and right handles are colinear.
+            sameHandleLength (bool): set to True if left and right handles length is equal.
+            distanceUnit (str) : the distance unit (mm/cm).
+            angleUnit (str) : the angle unit (rad/deg).
+            coordinates (list[float,float]) : point coordinates [x, y].
+            x (float) : x coordinate of the point.
+            y (float) : y coordinate of the point.
+            rightHandleLength (float) : the length of the right handle (tangent).
+            leftHandleLength (float) : the length of the left handle (tangent).
+            rightHandleAngle (float) : the angle of the right handle (tangent)
+            leftHandleAngle (float) : the angle of the left handle (tangent)
         Return:
             None
         """
+        self._initCoeffs(af='rad',df='mm')
+        
         if 'idx' in kwargs:
-            self.idx = kwargs['idx']
+            self.idx = kwargs.get('idx')
+        
+        if 'sameHandleAngle' in kwargs:
+            self.sameHandleAngle = kwargs['sameHandleAngle']
+
+        if 'sameHandleLength' in kwargs:
+            self.sameHandleLength = kwargs['sameHandleLength']
         
         if 'distanceUnit' in kwargs:
+            self._initCoeffs(df=kwargs['distanceUnit'])
             self.distanceUnit = kwargs['distanceUnit']
         
         if 'angleUnit' in kwargs:
+            self._initCoeffs(af=kwargs['angleUnit'])
             self.angleUnit = kwargs['angleUnit']
-        
+ 
         if 'coordinates' in kwargs:
-            self.coordinates = [x*units[self.distanceUnit] for x in kwargs['coordinates']]
-            [self.x, self.y] = self.coordinates
-            self._setPoles()
-        
+            self.coordinates = kwargs['coordinates']
+
         if 'x' in kwargs:
-            self.x = kwargs['x']*units[self.distanceUnit]
-            self.coordinates[0] = self.x
-            self._setPoles()
+            self.coordinates[0] = kwargs['x']
 
         if 'y' in kwargs:
-            self.y = kwargs['y']*units[self.distanceUnit]
-            self.coordinates[1] = self.y
-            self._setPoles()
+            self.coordinates[1] = kwargs['y']
 
         if 'rightHandleLength' in kwargs:
-            self.rightHandleLength = kwargs['rightHandleLength']*units[self.distanceUnit]
-            if 'sameHandleLength' in kwargs:
-                self.sameHandleLength = kwargs['sameHandleLength']
-                if self.sameHandleLength:
-                    self.leftHandleLength = kwargs['rightHandleLength']*units[self.distanceUnit]
-            if abs(self.rightHandleLength-self.leftHandleLength) == 0:
-                self.sameHandleLength=True
-            else:
-                self.sameHandleLength=False  
-
-
-        if 'rightHandleAngle' in kwargs:
-            self.rightHandleAngle = kwargs['rightHandleAngle']*units[self.angleUnit]
-            if 'sameHandleAngle' in kwargs:
-                self.sameHandleAngle = kwargs['sameHandleAngle']
-                if self.sameHandleAngle:
-                    self.leftHandleAngle = kwargs['rightHandleAngle']*units[self.angleUnit]+pi
-            if abs(self.rightHandleAngle-self.leftHandleAngle) == pi:
-                self.sameHandleAngle=True
-            else:
-                self.sameHandleAngle=False  
+            self.rightHandleLength = kwargs['rightHandleLength']
+            if 'sameHandleLength' not in kwargs:
+                self.sameHandleLength = True
 
         if 'leftHandleLength' in kwargs:
-            self.leftHandleLength = kwargs['leftHandleLength']*units[self.distanceUnit]
-            if abs(self.rightHandleLength-self.leftHandleLength) == 0:
-                self.sameHandleLength=True
-            else:
-                self.sameHandleLength=False  
+            self.leftHandleLength = kwargs['leftHandleLength']
+            self._initFlagLength()
+
+        if 'rightHandleAngle' in kwargs:
+            self.rightHandleAngle = kwargs['rightHandleAngle']
+            if 'sameHandleAngle' not in kwargs:
+                self.sameHandleAngle = True 
 
         if 'leftHandleAngle' in kwargs:
-            self.leftHandleAngle = kwargs['leftHandleAngle']*units[self.angleUnit]
-            if abs(self.rightHandleAngle-self.leftHandleAngle) == pi:
-                self.sameHandleAngle=True
-            else:
-                self.sameHandleAngle=False  
+            self.leftHandleAngle = kwargs['leftHandleAngle']
+            self._initFlagAngle()
+
+        self._initCoor()
+        self._initLength()
+        self._initAngle()
+        self._initPoles()
+
+class CenterLine:
+    """
+    _summary_
+        Python class that represent a center line as a Bézier curve.
+        A Bézier curve is defined by curvePoints.
+    Args:
+        name (str) : the name of the center line.  
+        numberOfPoints (int) : the number Bézier point of the centerline, default to -1.
+        controlPoints (list[list[list[int|float]|int|float]]) : default to None. 
+        startCoordinates (list[float,float]) : the coordinates of the start point, default to [0, 0].
+        endCoordinates (list[float,float]) : the coordinates of the end point, default to [75,75].
+        crossSection: (list[float,float]) : the dimensions of the cross section, default to [10,5].
+        origin (list[float, float] : the origin of the centerline, useful for a translation, default to None        
+    """ 
+    def __init__(self, name:str, numberOfPoints:int=-1, controlPoints=None, startCoordinates:list =[0, 0],endCoordinates:list=[75,75],crossSection:list=[10,5], origin=None) -> None:
+        self.name = name
+        self.nPts = numberOfPoints
+        self.controlPoints = controlPoints
+        self.crossSection = crossSection 
+        self.origin = origin
+        self.points : list[_CurvePoint] = [] 
+        self.isSmooth : bool = True
+        self.startCoordinates = startCoordinates
+        self.endCoordinates = endCoordinates 
+        
+        if controlPoints is None:
+            self._initControlPoints()
+        else:
+            self.setCurvePoints(controlPoints)
+        
+        if  origin is not None:
+            self._initOrigin()
+        
+        self.computePath()
+
+    def computePath(self):
+        self.path = self._getBezierpath()
+
+    def _initControlPoints(self):
+        """
+        _summary_
+            Updates/initializes the control points (_curvePoints) of the centerline .
+        """ 
+        width = (self.endCoordinates[0]-self.startCoordinates[0])
+        height = (self.endCoordinates[1]-self.startCoordinates[1])        
+        self.points.append(_CurvePoint(0,self.startCoordinates, rightHandleLength=height/2, rightHandleAngle=90))
+        for idx in range(1,self.nPts-1):
+            coordinates = [(self.endCoordinates[0]-self.startCoordinates[0])*idx/(self.nPts-1),
+                           (self.endCoordinates[1]-self.startCoordinates[1])*(self.nPts-1-idx)/(self.nPts-1)]
+            self.points.append(_CurvePoint(idx,coordinates,rightHandleLength=width/(self.nPts-1),rightHandleAngle=-45))
+        self.points.append(_CurvePoint(self.nPts-1,self.endCoordinates,rightHandleLength=height/2,rightHandleAngle=90))
+
+    def _initOrigin(self):
+        """
+        _summary_
+            Updates/initializes the origin coordinates of the center line.
+        """ 
+        dx = self.origin[0]-self.points[0].x
+        dy = self.origin[1]-self.points[0].y
+        for point in self.points:
+            point.update(coordinates = [point.x+dx,point.y+dy] )
+    
+    def setCurvePoints(self,arrayCP:list[list[list[int|float]|int|float]]) -> None:
+        """
+        _summary_
+            Updates/initializes the curve points coordinates, left/right angle and handle length.
+        Args:
+            arrayCP (list[list[list[int|float]|int|float]]) : array of curve point following this structure [[[x,y],right handle length, right handle angle, left handle length, left handle angle ],..]
+        """        
+        self.nPts = len(arrayCP)
+        for idx, point in enumerate(arrayCP):
+            if len(point)>4:
+                if abs(point[2]-point[4]) == pi:
+                    self.isSmooth = True
+                else:
+                    self.isSmooth = False
+            point.insert(0,idx)
+            self.points.append(_CurvePoint(*point,angleUnit='deg'))
+        
+    def _getBezierpath(self)->BezierPath:
+        """
+        _summary_
+            Generates Bézier path instance.
+        Returns:
+            path (BezierPath) : instance of class BezierPath.
+        """ 
+        curves: list[CubicBezier]
+        curves=[]
+        for idx in range(len(self.points)-1):
+            curves.append(CubicBezier(Point(*self.points[idx].coordinates),
+                                      Point(*self.points[idx].rightPole),
+                                      Point(*self.points[idx+1].leftPole),
+                                      Point(*self.points[idx+1].coordinates)))
+    
+        path = BezierPath.fromSegments(curves)
+        path.closed=False
+        path = path.removeIrrelevantSegments()
+
+        return path
+
+    def getBeams(self, numberOfBeams:int)->list[list[int|float]]:
+        """
+        _summary_
+            Generates an array of beams coordinates, which the size is an input variable.
+        Args:
+            numberOfBeams (int) : number of beams.
+        Returns:
+            beams (list[list[int|float]]) : vector of beams coordinates.
+        """ 
+        beams = []
+        path = self._getBezierpath()
+
+        beamStep = path.length/(numberOfBeams-1)    
+        curves = path.asSegments()
+        remainingDistance = beamStep #Forcing starting distance to be 0
+
+        for curve in curves:
+            numberOfBeamsPerCurve = floor(curve.lengthAtTime(1)/beamStep)+1
+
+            startingDistance = beamStep-remainingDistance
+            remainingDistance = (curve.lengthAtTime(1)-startingDistance) % beamStep
+
+            startParameter = startingDistance/curve.lengthAtTime(1)
+            stepParameter = beamStep/curve.lengthAtTime(1)
+            
+            curveParameters=[startParameter+stepParameter*i for i in range(numberOfBeamsPerCurve)] 
+
+            for parameter in curveParameters:
                 
-class legCenterLine:
+                point = curve.pointAtTime(parameter)
+                theta = curve.tangentAtTime(parameter).angle-pi/2
 
-    def __init__(self, legInitials:str,numberOfPoints:int=3, startCoordinates:list[float]=[0,0], endCoordinates:list[float]=[75,75]) -> None:
-        self.isSmooth = True
-        self.numberOfPoints = numberOfPoints
-        self.legInitials = legInitials
-        self.point : list[curvePoint]
-        self.point=[]    
+                quaternion = Rotation.from_euler('z', -pi/2).inv() * Rotation.from_euler('y', theta) * Rotation.from_euler('x', pi)
+                quaternion = quaternion.as_quat()
 
-        self.point.append(curvePoint(0,startCoordinates,rightHandleAngle=90))
-        for idx in range(1,numberOfPoints-1):
-            coordinates = [(endCoordinates[0]-startCoordinates[0])/(idx+1),
-                           (endCoordinates[1]-startCoordinates[1])/(idx+1)]
-            self.point.append(curvePoint(idx,coordinates))
-        self.point.append(curvePoint(numberOfPoints-1,endCoordinates,rightHandleAngle=90))
+                beams.append([0,point.y,point.x,*quaternion.astype(list)])
 
-    def asArray(self) -> list[list[list[int|float]|int|float]]:
+        return beams
+
+    def _initializeGmsh(self, debug:bool=False):
+        """
+        _summary_
+            Sets GMSH options for meshing and debugging.
+        Args:
+            debug (bool) : Shows all warning and error messages if it is set to true. Default to false.
+        """ 
+        if not gmsh.isInitialized():
+            gmsh.initialize()
+            
+            #debugging
+            if debug:
+                gmsh.option.setNumber("General.Terminal", 1) #to capture every terminal event
+                gmsh.option.setNumber("General.Verbosity",2) # to debug or 99
+            else:
+                gmsh.option.setNumber("General.Terminal", 0)
+            #gmsh.clear()
+            
+            #Meshing
+            gmsh.option.setNumber("General.AbortOnError",1)
+            gmsh.option.setNumber('Mesh.Binary',1)
+            gmsh.option.setNumber('Mesh.MaxRetries',0)
+            gmsh.option.setNumber('Mesh.AlgorithmSwitchOnFailure',0)
+            gmsh.option.setNumber('Mesh.Algorithm', 9) #(1: MeshAdapt, 2: Automatic, 8: Frontal-Delaunay for Quads, 9: Packing of Parallelograms)
+            #gmsh.option.setNumber('Mesh.MeshSizeFromCurvatureIsotropic',1)
+            gmsh.option.setNumber('Mesh.MeshSizeFromCurvature',30)
+            #gmsh.option.setNumber('Mesh.MeshSizeFactor',0.25)
+
+    def _renderMeshGmsh(self, inputExtension:str='', debug=False)->bool:
+        """
+        _summary_
+            Generates a 2D mesh of a 3D model using GMSH, and returns a True flag if successful.
+        Args:
+            inputExtension (str) : . Default to False.
+            debug (bool) : Shows a preview of the mesh using GMSH gui if it is set to True. Default to False.
+        Returns:
+            success (bool) : True if geometry is meshed.
+        """ 
+        self._initializeGmsh(debug)
+        
+        if inputExtension:
+            gmsh.open(self.name+'.'+inputExtension)
+        gmsh.model.mesh.generate(2)
+        if debug:
+            gmsh.fltk.run() # to view the mesh
+        
+        if gmsh.logger.getLastError():
+            gmsh.finalize()
+            return False
+        else:
+            gmsh.write(self.name+'.stl')
+            gmsh.finalize()
+            if not debug and inputExtension:
+                os.remove(self.name+'.'+inputExtension)
+            return True
+        
+    def _getShapeGmsh(self,debug=False):
+        curves=self.path.asSegments()
+        self._initializeGmsh(debug)
+        occGeo = gmsh.model.occ() #OpenCascade kernel
+        corner = [-self.crossSection[0]/2, 
+                  -self.crossSection[1]/2+curves[0].start.y,
+                  curves[0].start.x]
+        crossSection= [(2,occGeo.addRectangle(*corner,*self.crossSection))]
+        occGeo.rotate(crossSection,
+                      0,
+                      curves[0].start.y,
+                      curves[0].start.x,
+                      1,0,0,angle=pi/2)
+        bezier = [(1,occGeo.addBezier([occGeo.addPoint(0, 
+                                                       curve.start.y,
+                                                       curve.start.x),
+                                       occGeo.addPoint(0,
+                                                       curve.points[1].y,
+                                                       curve.points[1].x),
+                                       occGeo.addPoint(0,
+                                                       curve.points[2].y,
+                                                       curve.points[2].x),
+                                       occGeo.addPoint(0,
+                                                       curve.end.y,
+                                                       curve.end.x)])) for curve in curves]
+        fusedBezier,_ = occGeo.fuse(bezier,bezier)
+        _,fusedBezierTag = zip(*fusedBezier)
+        
+        if len(fusedBezierTag)>1:
+            return False
+        
+        wireTag = occGeo.addWire(list(fusedBezierTag))
+        occGeo.addPipe(crossSection,wireTag)
+        occGeo.synchronize()
+
+    def exportSTLGmsh(self,path=CAD_DIRECTORY,debug=False)->bool:
+        os.chdir(path)
+        self._getShapeGmsh(debug=debug)
+        exportState = self._renderMeshGmsh(debug=debug)
+        return exportState
+    
+    def getTopologyGmsh(self,debug=False):
+        self._getShapeGmsh(debug)
+        gmsh.model.mesh.generate(2)
+        
+        _, coord,_ = gmsh.model.mesh.getNodes()
+        elementType = gmsh.model.mesh.getElementTypes(dim=2)[0]
+        nodesPerElement = gmsh.model.mesh.getElementProperties(elementType)[3]
+        nodes, _,_ = gmsh.model.mesh.getNodesByElementType(elementType)
+
+        nodes = [x-1 for x in nodes]
+        elements = [nodes[3*idx:3*idx+3] for idx in range(int(len(nodes)/nodesPerElement))]
+        positions = [coord[3*idx:3*idx+3] for idx in range(int(len(coord)/nodesPerElement))]
+
+        gmsh.finalize()
+    
+        return [positions, elements]
+        
+    def _getShapeCADQuery(self,debug=False):
+        curves = self.path.asSegments()
+        start = curves[0].start
+        crossSection = cq.Workplane("XZ",origin=(0,start.y,start.x)).rect(*self.crossSection)
+        wire = cq.Workplane("YZ")
+        for curve in curves:
+            wire = wire.bezier([(curve.start.y,curve.start.x),
+                                (curve.points[1].y,curve.points[1].x),
+                                (curve.points[2].y,curve.points[2].x),
+                                (curve.end.y,curve.end.x)])
+        volume = crossSection.sweep(wire,multisection=True,transition='round').val()
+        
+        if volume.isValid() and not volume.isNull():
+            volume.exportBrep(self.name+'.brep')
+            if not self._renderMeshGmsh(self.name,'brep',debug):
+                return volume.exportStl(self.name+'.stl')
+            else:
+                return True
+        else:
+            if debug:
+                volume.exportBrep(self.name+'.brep')
+            return False
+    
+    def exportSTLCadQuery(self,path=CAD_DIRECTORY,debug=False)->bool:
+        os.chdir(path)
+        curves = self.path.asSegments()
+        start = curves[0].start
+        crossSection = cq.Workplane("XZ",origin=(0,start.y,start.x)).rect(*self.crossSection)
+        wire = cq.Workplane("YZ")
+        for curve in curves:
+            wire = wire.bezier([(curve.start.y,curve.start.x),
+                                (curve.points[1].y,curve.points[1].x),
+                                (curve.points[2].y,curve.points[2].x),
+                                (curve.end.y,curve.end.x)])
+        volume = crossSection.sweep(wire,multisection=True,transition='round').val()
+        
+        if volume.isValid() and not volume.isNull():
+            volume.exportBrep(self.name+'.brep')
+            if not self._renderMeshGmsh('brep',debug):
+                return volume.exportStl(self.name+'.stl')
+            else:
+                return True
+        else:
+            if debug:
+                volume.exportBrep(self.name+'.brep')
+            return False
+        
+    def exportSTL(self, path=CAD_DIRECTORY, debug:bool=False)->bool:
+        if self.isSmooth:
+            return self.exportSTLGmsh(path,debug)
+        else:
+            return self.exportSTLCadQuery(path,debug)
+
+    def isValid(self)->bool:
+        intersection = self.path.getSelfIntersections() # self-intersection Verification
+
+        rightOffsetPath = self.path.offset(self.path.asSegments()[0].normalAtTime(0)*self.crossSection[1]/2)
+        rightOffsetPath.closed = False
+        rightOffsetIntersection = rightOffsetPath.getSelfIntersections() #pre sweep verification
+
+        leftOffsetPath = self.path.offset(self.path.asSegments()[0].normalAtTime(0)*-self.crossSection[1]/2)
+        leftOffsetPath.closed = False
+        leftOffsetIntersection = leftOffsetPath.getSelfIntersections() #pre sweep verification
+
+        return (not bool(intersection)) and (not bool(leftOffsetIntersection)) and (not bool(rightOffsetIntersection))
+
+    def plot(self,name=None,title=None,show=True):
+        if name is None:
+            name=self.name
+        if title is None:
+            title = name+' centerline'
+        _, ax = plt.subplots()
+        ax.set_title(label=title)
+        ax.set_aspect(aspect="auto")
+        ax.grid(True)
+        self.path.plot(ax)
+        for line in ax.lines: line.set_color("red")
+        # plt.rcParams["figure.figsize"] = (15,15)
+        if show:
+            plt.show()
+    
+    def exportPlot(self,name=None,title=None,path=FIG_DIRECTORY):
+        os.chdir(path)
+        if name is None:
+            name=self.name
+        self.plot(name = name,
+                  title = title,
+                  show = False)
+        plt.savefig(fname=name+'.png',
+                    bbox_inches = 'tight',
+                    )
+        plt.close()
+
+    def getControlPoints(self) -> list[list[list[int|float]|int|float]]:
         leg=[]
-        for point in self.point:
+        for point in self.points:
             if point.sameHandleLength and point.sameHandleAngle:
                 leg.append([point.coordinates,point.rightHandleLength,point.rightHandleAngle*180/pi])
 
@@ -503,47 +600,64 @@ class legCenterLine:
         
         return  leg
     
-    def fromArray(self,array:list[list[list[int|float]|int|float]]) -> None:
-        self.numberOfPoints = len(array)
-        self.point.clear()
+    def setFromOptuna(self,trialParams:dict) -> None:
 
-        for idx, point in enumerate(array):
-            point.insert(0,idx)
-            self.point.append(curvePoint(*point,angleUnit='deg'))
-
-    def updateFromOptuna(self,results:dict) -> None:
-
-        l = len(self.legInitials)
+        l = len(self.name)
         
-        lL = [ int(key[l+5:]) for key in results if key[l+3:l+5]=='lL' and key[:l]==self.legInitials]
-        lA = [ int(key[l+5:]) for key in results if key[l+3:l+5]=='lA' and key[:l]==self.legInitials]
+        lL = [ int(key[l+5:]) for key in trialParams if key[l+3:l+5]=='lL' and key[:l]==self.name]
+        lA = [ int(key[l+5:]) for key in trialParams if key[l+3:l+5]=='lA' and key[:l]==self.name]
         
-        for key in results.keys():
-            if key[:l] == self.legInitials:
+        for key in trialParams.keys():
+            if key[:l] == self.name:
                 sameAngle=True
                 sameLength=True
 
-                if key[l+3:l+4]=='x':
-                    self.point[int(key[l+4:])].update(x=float(results[key]))
+                if key[l+3:l+4] == 'x':
+                    self.points[int(key[l+4:])].update(x = float(trialParams[key]))
                 
-                if key[l+3:l+4]=='y':
-                    self.point[int(key[l+4:])].update(y=float(results[key]))
+                if key[l+3:l+4] == 'y':
+                    self.points[int(key[l+4:])].update(y = float(trialParams[key]))
                 
-                if key[l+3:l+5]=='rL':
+                if key[l+3:l+5] == 'rL':
                     if int(key[l+5:]) in lL:
-                        sameLength=False
-                    self.point[int(key[l+5:])].update(rightHandleLength=float(results[key]),sameHandleLength=sameLength)
+                        sameLength = False
+                    self.points[int(key[l+5:])].update(rightHandleLength = float(trialParams[key]),
+                                                       sameHandleLength = sameLength)
                     
-                if key[l+3:l+5]=='rA':
+                if key[l+3:l+5] == 'rA':
                     if int(key[l+5:]) in lA:
-                        sameAngle=False
-                    self.point[int(key[l+5:])].update(rightHandleAngle=float(results[key]),angleUnit='deg',sameHandleAngle=sameAngle)
+                        sameAngle = False
+                    self.points[int(key[l+5:])].update(rightHandleAngle = float(trialParams[key]),
+                                                       angleUnit = 'deg',
+                                                       sameHandleAngle = sameAngle)
 
-                if key[l+3:l+5]=='lL':
-                    self.point[int(key[l+5:])].update(leftHandleLength=float(results[key]))
+                if key[l+3:l+5] == 'lL':
+                    self.points[int(key[l+5:])].update(leftHandleLength = float(trialParams[key]))
 
-                if key[l+3:l+5]=='lA':
-                    self.point[int(key[l+5:])].update(leftHandleAngle=float(results[key]),angleUnit='deg') 
+                if key[l+3:l+5] == 'lA':
+                    self.points[int(key[l+5:])].update(leftHandleAngle = float(trialParams[key]),
+                                                       angleUnit = 'deg') 
+    
+    def update(self,**kwargs)->None:
+        """
+            _summary_
+                Updates the attributes of a center line class , using keyword arguments.
+            Args:
+                origin (list[float,float]): the coordinates of the origin of the centerline.
+                crossSection (list[float,float]): the dimensions of the cross section to be sweepted along the centerline .
+                endCoordinates (list[float,float]): the coordinates of the end point of the center line.
+        """
+        if 'origin' in kwargs:
+            self.origin = kwargs['origin']
+            self._initOrigin()
+        
+        if 'crossSection' in kwargs:
+            self.crossSection = kwargs['crossSection']
+        if 'endCoordinates' in kwargs:
+            self.endCoordinates = kwargs['endCoordinates']
+            self._initControlPoints()
+
+        self.computePath()
 
 if __name__=="__main__":
     main()
