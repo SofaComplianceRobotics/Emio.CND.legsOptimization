@@ -1,0 +1,37 @@
+Study                  : no-name-d287b32a-539c-4dd7-84c2-338c36c49b78
+- Start                : 2026-04-22 13:56:17.516495
+- End                  : 2026-04-22 14:23:52.774112
+- Duration             : 0:27:35.257617
+- Sampler              : GPSampler
+- Pruner               : ThresholdPruner
+- Trials               : 5000
+-- Completed trials    : 11, 0.22 %
+-- Pruned trials       : 4989, 99.78 %
+--- Unfeasible shapes  : 4977, 99.76 %
+--- Unattained targets : 12, 0.24 %
+-- Failed trials       : 0, 0.00 %
+-- Parameters          :
+                         sLegPt.rL0	: [10,100]
+                         sLegPt.rL1	: [10,100]
+                         sLegPt.x1	: [-30,20]
+                         sLegPt.y1	: [-10,61]
+                         sLegPt.rA1	: [-80,-20]
+                         sLegPt.rL2	: [10,100]
+                         lLegPt.rL0	: [10,100]
+                         lLegPt.rL1	: [10,100]
+                         lLegPt.x1	: [-10,61]
+                         lLegPt.y1	: [-30,60]
+                         lLegPt.rA1	: [-80,-20]
+                         lLegPt.rL2	: [10,100]
+-- Results             : 
+                         Trial number : 186, Value : 0.018347, Duration : 0:00:11.614953
+                         Trial number : 710, Value : 0.024516, Duration : 0:00:12.411290
+                         Trial number : 438, Value : 0.028672, Duration : 0:00:12.277309
+                         Trial number : 1, Value : 0.044806, Duration : 0:00:12.902850
+                         Trial number : 34, Value : 0.050414, Duration : 0:00:12.295671
+                         Trial number : 59, Value : 0.051761, Duration : 0:00:12.191206
+                         Trial number : 708, Value : 0.078816, Duration : 0:00:12.465256
+                         Trial number : 277, Value : 0.109158, Duration : 0:00:11.701989
+                         Trial number : 682, Value : 0.173432, Duration : 0:00:11.671413
+                         Trial number : 550, Value : 1.579570, Duration : 0:00:11.897715
+                         Trial number : 35, Value : 4.424631, Duration : 0:00:12.853307

@@ -1,0 +1,36 @@
+Study                  : no-name-5e3c6aa6-d2fa-4889-97b8-401ca9f8f79f
+- Start                : 2026-04-21 16:34:58.719061
+- End                  : 2026-04-21 16:44:27.023734
+- Duration             : 0:09:28.304673
+- Sampler              : GPSampler
+- Pruner               : ThresholdPruner
+- Trials               : 1000
+-- Completed trials    : 10, 1.00 %
+-- Pruned trials       : 990, 99.00 %
+--- Unfeasible shapes  : 954, 96.36 %
+--- Unattained targets : 36, 3.64 %
+-- Failed trials       : 0, 0.00 %
+-- Parameters          :
+                         sLegPt.rL0	: [10,100]
+                         sLegPt.rL1	: [10,100]
+                         sLegPt.x1	: [-30,40]
+                         sLegPt.y1	: [-10,111]
+                         sLegPt.rA1	: [-80,-20]
+                         sLegPt.rL2	: [10,100]
+                         lLegPt.rL0	: [10,100]
+                         lLegPt.rL1	: [10,100]
+                         lLegPt.x1	: [-10,111]
+                         lLegPt.y1	: [-30,80]
+                         lLegPt.rA1	: [-80,-20]
+                         lLegPt.rL2	: [10,100]
+-- Results             : 
+                         Trial number : 79, Value : 0.000002, Duration : 0:00:09.503207
+                         Trial number : 154, Value : 0.000040, Duration : 0:00:09.095076
+                         Trial number : 62, Value : 0.000435, Duration : 0:00:09.450000
+                         Trial number : 112, Value : 0.000638, Duration : 0:00:09.486325
+                         Trial number : 51, Value : 0.001198, Duration : 0:00:10.313215
+                         Trial number : 161, Value : 0.001697, Duration : 0:00:09.088256
+                         Trial number : 190, Value : 0.001794, Duration : 0:00:09.143164
+                         Trial number : 88, Value : 0.013635, Duration : 0:00:09.188187
+                         Trial number : 193, Value : 0.016765, Duration : 0:00:09.140007
+                         Trial number : 60, Value : 0.025875, Duration : 0:00:08.797121

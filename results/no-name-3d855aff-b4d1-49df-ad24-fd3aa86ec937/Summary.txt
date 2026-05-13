@@ -1,0 +1,32 @@
+Study                  : no-name-3d855aff-b4d1-49df-ad24-fd3aa86ec937
+- Start                : 2026-05-11 13:53:13.549623
+- End                  : 2026-05-11 13:55:13.940174
+- Duration             : 0:02:00.390551
+- Sampler              : CmaEsSampler
+- Pruner               : ThresholdPruner
+- Trials               : 10
+-- Completed trials    : 6, 60.00 %
+-- Pruned trials       : 4, 40.00 %
+--- Unfeasible shapes  : 4, 100.00 %
+--- Unattained targets : 0, 0.00 %
+-- Failed trials       : 0, 0.00 %
+-- Parameters          :
+                         lowPt.rL1	: [10,100]
+                         lowPt.rL2	: [10,100]
+                         lowPt.x2	: [0,75]
+                         lowPt.y2	: [0,75]
+                         lowPt.rA2	: [-80,-20]
+                         lowPt.rL3	: [10,100]
+                         highPt.rL1	: [10,100]
+                         highPt.rL2	: [10,100]
+                         highPt.x2	: [0,75]
+                         highPt.y2	: [0,75]
+                         highPt.rA2	: [-80,-20]
+                         highPt.rL3	: [10,100]
+-- Results             : 
+                         Trial number : 5, Value : 8.729508, Duration : 0:00:19.415500
+                         Trial number : 0, Value : 8.738323, Duration : 0:00:13.607002
+                         Trial number : 7, Value : 8.738991, Duration : 0:00:18.776457
+                         Trial number : 1, Value : 8.740520, Duration : 0:00:17.929668
+                         Trial number : 4, Value : 8.741317, Duration : 0:00:18.931407
+                         Trial number : 2, Value : 8.744329, Duration : 0:00:21.435433

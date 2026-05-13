@@ -1,0 +1,36 @@
+Study                  : no-name-f3dd0388-fd6c-430d-8790-f1d0bc78e4c3
+- Start                : 2026-04-20 17:27:48.411300
+- End                  : 2026-04-20 17:30:19.886335
+- Duration             : 0:02:31.475035
+- Sampler              : GPSampler
+- Pruner               : ThresholdPruner
+- Trials               : 15
+-- Completed trials    : 10, 66.67 %
+-- Pruned trials       : 5, 33.33 %
+--- Unfeasible shapes  : 0, 0.00 %
+--- Unattained targets : 5, 100.00 %
+-- Failed trials       : 0, 0.00 %
+-- Parameters          :
+                         sLegPt.rL0	: [10,100]
+                         sLegPt.rL1	: [10,100]
+                         sLegPt.x1	: [30,50]
+                         sLegPt.y1	: [10,30]
+                         sLegPt.rA1	: [-80,-20]
+                         sLegPt.rL2	: [10,100]
+                         lLegPt.rL0	: [10,100]
+                         lLegPt.rL1	: [10,100]
+                         lLegPt.x1	: [30,50]
+                         lLegPt.y1	: [10,30]
+                         lLegPt.rA1	: [-80,-20]
+                         lLegPt.rL2	: [10,100]
+-- Results             : 
+                         Trial number : 5, Value : 0.020558, Duration : 0:00:09.382417
+                         Trial number : 13, Value : 0.027527, Duration : 0:00:10.159690
+                         Trial number : 12, Value : 0.028235, Duration : 0:00:11.497370
+                         Trial number : 8, Value : 0.036247, Duration : 0:00:09.229244
+                         Trial number : 6, Value : 0.038093, Duration : 0:00:09.648343
+                         Trial number : 3, Value : 0.038969, Duration : 0:00:09.244842
+                         Trial number : 1, Value : 0.041586, Duration : 0:00:09.945088
+                         Trial number : 11, Value : 0.058248, Duration : 0:00:10.755406
+                         Trial number : 14, Value : 0.060398, Duration : 0:00:09.891896
+                         Trial number : 4, Value : 1.844835, Duration : 0:00:09.215595

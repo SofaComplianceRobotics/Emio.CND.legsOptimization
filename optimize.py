@@ -6,8 +6,8 @@ import argparse
 #import param
 import optuna
 import optunahub
-from processing import logResults, createFolder, appendDataset
-
+from optimization.callbacks import LogCompletedTrial, SaveCompletedTrial, RepeatTrial
+from optimization.processing import logResults, createFolder, appendDataset
 # Argument parser
 parser = argparse.ArgumentParser(description='Optimize an objective function.')
 parser.add_argument('objective',
@@ -35,27 +35,32 @@ sys.path.append(os.path.dirname(os.path.abspath(sys.argv[0]))+"/../..")
 o = importlib.import_module(os.path.splitext(os.path.basename(module))[0])
 
 # Create a study for optimization
-module = optunahub.load_module(package="samplers/auto_sampler")
+#module = optunahub.load_module(package="samplers/auto_sampler")
 study = optuna.create_study(storage = optuna.storages.InMemoryStorage(),
-                            sampler = module.AutoSampler(), #Sampler is determined based on the study parameters
-                            pruner=optuna.pruners.ThresholdPruner(upper=5), #Prune the study if the score exceeds the threashold
-                         )
+                            sampler = optuna.samplers.CmaEsSampler(),#module.AutoSampler(), #Sampler is determined based on the study parameters
+                            pruner= optuna.pruners.HyperbandPruner(),#optuna.pruners.ThresholdPruner(upper=5), #Prune the study if the score exceeds the threashold
+                            )
 
 # Optimize the objective function
 print(o.objective.__doc__)
-createFolder(study)
+
+# createFolder(study)
+#optuna.logging.set_verbosity(optuna.logging.CRITICAL)
 study.optimize(func=o.objective,
                gc_after_trial=True, #Auto garbage clean to not saturate the memory
-               # n_trials=args.nTrials,
-               # n_jobs=5,
+               n_trials=args.nTrials,
+               #n_jobs=5,
                show_progress_bar=True,
-               callbacks=[optuna.study.MaxTrialsCallback(n_trials=50,  # Keeps running until 10 trials are completed
-                                                          states=(optuna.trial.TrialState.COMPLETE,))]
+               callbacks=[SaveCompletedTrial(study_name=study.study_name),
+                          #RepeatTrial(maxIteration=5),
+                          #optuna.study.MaxTrialsCallback(n_trials=5, states=(optuna.trial.TrialState.COMPLETE,)),
+                          #LogCompletedTrial()
+                          ]
                )
 
 # Log optimization results
 logResults(study)
-appendDataset(study,'Dataset.csv')
+appendDataset(study,'nDataset.csv')
 
 # Visualize the optimization history
 fig = optuna.visualization.plot_optimization_history(study)

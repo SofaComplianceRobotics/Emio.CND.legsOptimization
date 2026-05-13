@@ -1,59 +1,98 @@
 from re import split
 from scipy.spatial.transform import Rotation
 import numpy as np
+from math import dist
 
-def operationsSequence(sequence:str,defaultOperationDuration:float=0)->dict:
-    delimiters = r'(p|\+tx|\-tx|\+ty|\-ty|\+tz|\-tz|\+rx|\-rx|\+ry|\-ry|\+rz|\-rz)'
-    sequenceList = split(delimiters,sequence)[1:]
-    duration = {}
-    ids=0
-    for idx, operation in enumerate(sequenceList):
-        if idx <len(sequenceList)-1 and idx%2==0:
-            if sequenceList[idx+1] == '':
-                duration[operation] = defaultOperationDuration #operation+str(ids)
-            else:
-                duration[operation] = float(sequenceList[idx+1]) #operation+str(ids)
-            ids+=1
-    return duration
+class Movements():
+    """
+    A sequence is defined as a string of movements\n
+    Movements are defined as follow : Direction&Operation&Axis&OperationDuration
+    Direction can be either + or -
+    Operation can be either t for translation, r for rotation or p for pause
+    Operation duration can be defined individualy, or for all the operations using the default variable
+    """
+    def __init__(self, 
+                 sequence : str='p0.75+ty',
+                 defaultMovementsDuration : float = 4, 
+                 movementsLimits : dict = {'+ty':80},
+                 dt = 0.01):
 
-def performOperations(position, movementSequence:str, displacementLimits:dict, factor:float, defaultOperationDuration:float=0):
-    sequence = operationsSequence(movementSequence.lower(),defaultOperationDuration)
-    simulationDuration = sum(sequence.values())
-    indices = {'tx':0,'ty':1,'tz':2,'rx':3,'ry':4,'rz':5}
-    progressDuration = 0
-    for movement, operationDuration in sequence.items():
-        progressDuration += operationDuration
-        movement = movement[0:3]
-        if factor*simulationDuration <= progressDuration:
-            if 'p' in movement:
-                break
-            else:
-                direction = int(movement[0]+'1')
-                operation = movement[1]
-                axis = movement[2]
-                operationIdx = indices[operation+axis]
-                scaledFactor = (factor*simulationDuration-(progressDuration-operationDuration))/operationDuration
-                if operation == 't':
-                    position[operationIdx] += displacementLimits[movement]*direction*scaledFactor
+        delimiters = r'(p|\+tx|\-tx|\+ty|\-ty|\+tz|\-tz|\+rx|\-rx|\+ry|\-ry|\+rz|\-rz)'
+        
+        self.sequence = split(delimiters,sequence.lower())[1:]
+        self.defaultMovementsDuration = defaultMovementsDuration
+        self.MovementsLimits = movementsLimits
+        self.dt=dt
 
-                elif operation == 'r':
-                    angle=displacementLimits[movement]*direction*scaledFactor
-                    rotation = Rotation.from_euler(axis, angle).inv()
-                    offset = [0.0, 105-30, 0.0]
-                    position[:3] -= offset
-                    position[:3] = rotation.apply(position[:3]) + offset
-                break
+        durationPerMovements = {}
+        
+        #ids=0
+        for idx, operation in enumerate(self.sequence):
+            if idx <len(self.sequence)-1 and idx%2==0:
+                if self.sequence[idx+1] == '':
+                    durationPerMovements[operation] = self.defaultMovementsDuration #operation+str(ids)
+                else:
+                    durationPerMovements[operation] = float(self.sequence[idx+1]) #operation+str(ids)
+                #ids+=1
 
-    return position
+        self.durationPerMovements = durationPerMovements
+        movements = list(self.durationPerMovements.values())
+        
+        self.duration = sum(movements)
+        self.steps = []*len(movements)
 
-def animation(topTarget, iniPosition, movementSequence, displacementLimits,defaultOperationDuration,factor):
-    iniPosition=[0, 105, 0, 0, 0, 0, 1]
-    p = performOperations(np.copy(iniPosition),
-                          movementSequence,
-                          displacementLimits,
-                          factor,
-                          defaultOperationDuration)
-    topTarget.value = [p]
+        for idx in range(len(movements)):
+            self.steps.append(int(sum(movements[:idx+1])/self.dt))
 
-    # p[1]-=65
-    # botTarget.value = [p]
+    def getTargetPosition(self, initialPosition:list,targetHeight , factor:float)->list:
+        indices = {'tx':0, 'ty':1, 'tz':2, 'rx':3, 'ry':4, 'rz':5}
+        progressDuration = 0
+
+        for movement, duration in self.durationPerMovements.items():
+            progressDuration += duration
+            movement = movement[0:3]
+            if factor*self.duration <= progressDuration:
+                if 'p' in movement:
+                    break
+                else:
+                    direction = int(movement[0]+'1')
+                    operation = movement[1]
+                    axis = movement[2]
+                    operationIdx = indices[operation+axis]
+                    scaledFactor = (factor*self.duration-(progressDuration-duration))/duration
+                    
+                    if scaledFactor > 0.5: scaledFactor = 1-scaledFactor
+        
+                    transformation = self.MovementsLimits[movement]*direction*scaledFactor*2
+
+                    match operation:
+                        case 't':
+                            initialPosition[0][operationIdx] += transformation
+                            initialPosition[1][operationIdx] += transformation
+                        case 'r':
+                            rotation = Rotation.from_euler(axis, transformation).inv()
+            
+                            high_tcp = np.array([0,targetHeight,0])
+                            
+                            initialPosition[0][:3] = initialPosition[0][:3] + rotation.apply(high_tcp) - high_tcp
+                            initialPosition[0][3:] = rotation.as_quat()
+
+                            initialPosition[1][:3] = initialPosition[1][:3] + rotation.apply(-1*high_tcp) + high_tcp
+                            initialPosition[1][3:] = rotation.as_quat()
+                    break
+
+        return initialPosition
+
+
+def animation(target:list, initialPosition:list, movements:Movements, height:float ,factor:float):
+    
+    initialPosition = np.copy(initialPosition)
+    p = movements.getTargetPosition(initialPosition, height, factor)
+    target.value = [*p]
+
+def distance(desiredPosition, maximumPosition,factor):
+    score = abs(dist(desiredPosition.getMechanicalState().position.value[-1][0:3],maximumPosition.getMechanicalState().position.value[-1][0:3]))
+    print(score)
+
+if __name__ == "__main__":
+    movement = Movements()

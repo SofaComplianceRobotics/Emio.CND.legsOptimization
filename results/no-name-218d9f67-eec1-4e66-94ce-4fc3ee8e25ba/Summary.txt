@@ -1,0 +1,27 @@
+Study                  : no-name-218d9f67-eec1-4e66-94ce-4fc3ee8e25ba
+- Start                : 2026-04-21 15:33:21.469064
+- End                  : 2026-04-21 15:37:05.635094
+- Duration             : 0:03:44.166030
+- Sampler              : RandomSampler
+- Pruner               : ThresholdPruner
+- Trials               : 100
+-- Completed trials    : 0, 0.00 %
+-- Pruned trials       : 100, 100.00 %
+--- Unfeasible shapes  : 64, 64.00 %
+--- Unattained targets : 36, 36.00 %
+-- Failed trials       : 0, 0.00 %
+-- Parameters          :
+                         sLegPt.rL0	: [10,100]
+                         sLegPt.rL1	: [10,100]
+                         sLegPt.x1	: [-20,110]
+                         sLegPt.y1	: [0,80]
+                         sLegPt.rA1	: [-80,-45]
+                         sLegPt.rL2	: [10,100]
+                         lLegPt.rL0	: [10,100]
+                         lLegPt.rL1	: [10,100]
+                         lLegPt.x1	: [-20,110]
+                         lLegPt.y1	: [0,80]
+                         lLegPt.rA1	: [-80,-45]
+                         lLegPt.rL2	: [10,100]
+-- Results             : 
+                         There are no complete trials !

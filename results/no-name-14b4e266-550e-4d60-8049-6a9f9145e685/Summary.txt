@@ -1,0 +1,27 @@
+Study                  : no-name-14b4e266-550e-4d60-8049-6a9f9145e685
+- Start                : 2026-04-25 00:34:21.037492
+- End                  : 2026-04-25 00:34:34.968283
+- Duration             : 0:00:13.930791
+- Sampler              : RandomSampler
+- Pruner               : ThresholdPruner
+- Trials               : 2
+-- Completed trials    : 1, 50.00 %
+-- Pruned trials       : 1, 50.00 %
+--- Unfeasible shapes  : 1, 100.00 %
+--- Unattained targets : 0, 0.00 %
+-- Failed trials       : 0, 0.00 %
+-- Parameters          :
+                         sLegPt.rL0	: [10,100]
+                         sLegPt.rL1	: [10,100]
+                         sLegPt.x1	: [-30,30]
+                         sLegPt.y1	: [-20,71]
+                         sLegPt.rA1	: [-80,-20]
+                         sLegPt.rL2	: [10,100]
+                         lLegPt.rL0	: [10,100]
+                         lLegPt.rL1	: [10,100]
+                         lLegPt.x1	: [-20,71]
+                         lLegPt.y1	: [-30,70]
+                         lLegPt.rA1	: [-80,-20]
+                         lLegPt.rL2	: [10,100]
+-- Results             : 
+                         Trial number : 1, Value : 0.042874, Duration : 0:00:13.310581

@@ -1,0 +1,42 @@
+Study                  : no-name-74391b56-ba12-4dc5-857b-f94bb102cb00
+- Start                : 2026-04-13 10:00:34.703965
+- End                  : 2026-04-13 11:24:45.309321
+- Duration             : 1:24:10.605356
+- Sampler              : GPSampler
+- Pruner               : ThresholdPruner
+- Trials               : 696
+-- Completed trials    : 10, 1.44 %
+-- Pruned trials       : 686, 98.56 %
+--- Unfeasible shapes  : 0, 0.00 %
+--- Unattained targets : 686, 100.00 %
+-- Failed trials       : 0, 0.00 %
+-- Parameters          :
+                         sLegPt.rL0	: [10,100]
+                         sLegPt.lL0	: [10,100]
+                         sLegPt.rL1	: [10,100]
+                         sLegPt.lL1	: [10,100]
+                         sLegPt.x1	: [30,50]
+                         sLegPt.y1	: [10,30]
+                         sLegPt.rA1	: [-80,-20]
+                         sLegPt.rL2	: [10,100]
+                         sLegPt.lL2	: [10,100]
+                         lLegPt.rL0	: [10,100]
+                         lLegPt.lL0	: [10,100]
+                         lLegPt.rL1	: [10,100]
+                         lLegPt.lL1	: [10,100]
+                         lLegPt.x1	: [30,50]
+                         lLegPt.y1	: [10,30]
+                         lLegPt.rA1	: [-80,-20]
+                         lLegPt.rL2	: [10,100]
+                         lLegPt.lL2	: [10,100]
+-- Results             : 
+                         Trial number : 692, Value : 0.058209, Duration : 0:00:10.481652
+                         Trial number : 215, Value : 0.116511, Duration : 0:00:10.320184
+                         Trial number : 105, Value : 0.125274, Duration : 0:00:20.090296
+                         Trial number : 695, Value : 0.391928, Duration : 0:00:10.694881
+                         Trial number : 35, Value : 0.833226, Duration : 0:00:34.819707
+                         Trial number : 52, Value : 1.637823, Duration : 0:00:30.393614
+                         Trial number : 607, Value : 2.904122, Duration : 0:00:10.342769
+                         Trial number : 655, Value : 4.274415, Duration : 0:00:10.910354
+                         Trial number : 298, Value : 4.503275, Duration : 0:00:15.317818
+                         Trial number : 17, Value : 4.696627, Duration : 0:00:11.091694

@@ -1,0 +1,9 @@
+Study                  : no-name-c0d2baf1-de3b-443f-a586-ff20ddd2bde6
+- Start                : 2026-04-25 00:31:57.465632
+- End                  : 2026-04-25 00:32:25.240697
+- Duration             : 0:00:27.775065
+- Sampler              : GPSampler
+- Pruner               : ThresholdPruner
+- Trials               : 2
+-- Completed trials    : 2, 100.00 %
+-- Pruned trials       : 0, 0.00 %

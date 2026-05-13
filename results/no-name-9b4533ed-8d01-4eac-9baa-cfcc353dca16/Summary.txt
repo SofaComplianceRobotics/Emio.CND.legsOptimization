@@ -1,0 +1,27 @@
+Study                  : no-name-9b4533ed-8d01-4eac-9baa-cfcc353dca16
+- Start                : 2026-05-12 18:08:35.753095
+- End                  : 2026-05-12 18:08:57.389480
+- Duration             : 0:00:21.636385
+- Sampler              : CmaEsSampler
+- Pruner               : HyperbandPruner
+- Trials               : 10
+-- Completed trials    : 1, 10.00 %
+-- Pruned trials       : 9, 90.00 %
+--- Unfeasible shapes  : 9, 100.00 %
+--- Unattained targets : 0, 0.00 %
+-- Failed trials       : 0, 0.00 %
+-- Parameters          :
+                         lowPt.rL1	: [10,100]
+                         lowPt.rL2	: [10,100]
+                         lowPt.x2	: [0,75]
+                         lowPt.y2	: [0,75]
+                         lowPt.rA2	: [-80,-20]
+                         lowPt.rL3	: [10,100]
+                         highPt.rL1	: [10,100]
+                         highPt.rL2	: [10,100]
+                         highPt.x2	: [0,75]
+                         highPt.y2	: [0,75]
+                         highPt.rA2	: [-80,-20]
+                         highPt.rL3	: [10,100]
+-- Results             : 
+                         Trial number : 4, Value : 0.000000, Duration : 0:00:15.238346

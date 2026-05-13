@@ -1,0 +1,36 @@
+Study                  : no-name-1c55fc58-82d8-431a-adf7-7078c8b950fd
+- Start                : 2026-04-22 16:30:24.313126
+- End                  : 2026-04-22 17:45:38.187698
+- Duration             : 1:15:13.874572
+- Sampler              : GPSampler
+- Pruner               : ThresholdPruner
+- Trials               : 5000
+-- Completed trials    : 10, 0.20 %
+-- Pruned trials       : 4990, 99.80 %
+--- Unfeasible shapes  : 4988, 99.96 %
+--- Unattained targets : 2, 0.04 %
+-- Failed trials       : 0, 0.00 %
+-- Parameters          :
+                         sLegPt.rL0	: [10,100]
+                         sLegPt.rL1	: [10,100]
+                         sLegPt.x1	: [-30,30]
+                         sLegPt.y1	: [-10,61]
+                         sLegPt.rA1	: [-80,-20]
+                         sLegPt.rL2	: [10,100]
+                         lLegPt.rL0	: [10,100]
+                         lLegPt.rL1	: [10,100]
+                         lLegPt.x1	: [-10,61]
+                         lLegPt.y1	: [-30,70]
+                         lLegPt.rA1	: [-80,-20]
+                         lLegPt.rL2	: [10,100]
+-- Results             : 
+                         Trial number : 113, Value : 0.007025, Duration : 0:00:11.545646
+                         Trial number : 279, Value : 0.007286, Duration : 0:00:13.090047
+                         Trial number : 169, Value : 0.007652, Duration : 0:00:12.532535
+                         Trial number : 242, Value : 0.009258, Duration : 0:00:13.500725
+                         Trial number : 196, Value : 0.010338, Duration : 0:00:13.002352
+                         Trial number : 303, Value : 0.011172, Duration : 0:00:12.992715
+                         Trial number : 259, Value : 0.014244, Duration : 0:00:12.275496
+                         Trial number : 199, Value : 0.015303, Duration : 0:00:13.084357
+                         Trial number : 323, Value : 0.024333, Duration : 0:00:11.830491
+                         Trial number : 14, Value : 0.063032, Duration : 0:00:12.373992

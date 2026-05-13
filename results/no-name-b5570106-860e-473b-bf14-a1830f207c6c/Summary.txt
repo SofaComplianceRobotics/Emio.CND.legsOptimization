@@ -1,0 +1,36 @@
+Study                  : no-name-b5570106-860e-473b-bf14-a1830f207c6c
+- Start                : 2026-04-22 17:54:22.247947
+- End                  : 2026-04-22 17:59:12.759741
+- Duration             : 0:04:50.511794
+- Sampler              : GPSampler
+- Pruner               : ThresholdPruner
+- Trials               : 185
+-- Completed trials    : 10, 5.41 %
+-- Pruned trials       : 175, 94.59 %
+--- Unfeasible shapes  : 158, 90.29 %
+--- Unattained targets : 17, 9.71 %
+-- Failed trials       : 0, 0.00 %
+-- Parameters          :
+                         sLegPt.rL0	: [10,100]
+                         sLegPt.rL1	: [10,100]
+                         sLegPt.x1	: [-30,30]
+                         sLegPt.y1	: [-20,71]
+                         sLegPt.rA1	: [-80,-20]
+                         sLegPt.rL2	: [10,100]
+                         lLegPt.rL0	: [10,100]
+                         lLegPt.rL1	: [10,100]
+                         lLegPt.x1	: [-20,71]
+                         lLegPt.y1	: [-30,70]
+                         lLegPt.rA1	: [-80,-20]
+                         lLegPt.rL2	: [10,100]
+-- Results             : 
+                         Trial number : 36, Value : 0.001984, Duration : 0:00:13.247211
+                         Trial number : 9, Value : 0.002067, Duration : 0:00:12.329152
+                         Trial number : 113, Value : 0.003535, Duration : 0:00:13.639305
+                         Trial number : 170, Value : 0.016648, Duration : 0:00:14.468099
+                         Trial number : 14, Value : 0.021747, Duration : 0:00:12.909693
+                         Trial number : 167, Value : 0.024369, Duration : 0:00:14.934764
+                         Trial number : 8, Value : 0.027600, Duration : 0:00:12.259075
+                         Trial number : 41, Value : 0.030848, Duration : 0:00:13.517196
+                         Trial number : 33, Value : 0.042616, Duration : 0:00:12.750604
+                         Trial number : 184, Value : 0.106967, Duration : 0:00:14.125740
