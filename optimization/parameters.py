@@ -162,17 +162,17 @@ if mode == 'trial':
    
   #  high_leg.crossSection=[5,0.25]
   #  low_leg.crossSection=[5,0.25]
-   hname=study_name+'_'+trial_number+'_'+high_leg.name+'_'+str(high_leg.crossSection)
-   lname=study_name+'_'+trial_number+'_'+low_leg.name+'_'+str(low_leg.crossSection)
+  #  hname=study_name+'_'+trial_number+'_'+high_leg.name+'_'+str(high_leg.crossSection)
+  #  lname=study_name+'_'+trial_number+'_'+low_leg.name+'_'+str(low_leg.crossSection)
 
-   high_leg.exportCadQuery(name=hname,extension='.step')
-   low_leg.exportCadQuery(name=lname,extension='.step')
+  #  high_leg.exportCadQuery(name=hname,extension='.step')
+  #  low_leg.exportCadQuery(name=lname,extension='.step')
 
-   high_leg.centerLine.exportSvg(name=hname, withNodes=False)
-   low_leg.centerLine.exportSvg(name=lname, withNodes=False)
+  #  high_leg.centerLine.exportSvg(name=hname, withNodes=False)
+  #  low_leg.centerLine.exportSvg(name=lname, withNodes=False)
 
-   high_leg.centerLine.exportDxf(name=hname)
-   low_leg.centerLine.exportDxf(name=lname)   
+  #  high_leg.centerLine.exportDxf(name=hname)
+  #  low_leg.centerLine.exportDxf(name=lname)   
   #  low_leg.centerLine.plot()
   #  high_leg.centerLine.plot()
    
