@@ -4,20 +4,63 @@ import numpy as np
 import json
 from splib3.loaders import getLoadingLocation
 from utils.topology import getIndicesInBox
-from parts.centerpart import CenterPart
 
-class SamCenterPart(CenterPart):
-    prefabData = CenterPart.prefabData
-    prefabData.append({'name': 'collisionNodes', 'type': 'vector<Vec3d>', 'help': '', 'default': None})
-    prefabData.append({'name': 'collisionTriangles', 'type': 'vector<Triangle>', 'help': '', 'default': None})
-    prefabData.append({'name': 'mode', 'type': 'string', 'help': '', 'default': 'trial'})
+class SamCenterPart(Sofa.Prefab):
+    """
+    Represents the center part of the Sam robot that connected the legs together (also called connector).
+    
+    Class Variables:
+        - `partName` (`string`): Name of the center part (e.g., "whitepart", "yellowpart", "bluepart"), should have corresponding meshes in the "data/meshes/centerparts" directory.
+        - `type` (`string`): Type of the center part, either "deformable" or "rigid".
+        - `model` (`string`): Model type between "tetra" and "beam", if deformable.
+        - `massDensity` (`float`): Mass density of the center part.
+        - `poissonRatio` (`float`): Poisson's ratio of the material, if deformable.
+        - `youngModulus` (`float`): Young's modulus of the material, if deformable.
+        - `color` (`Vec4d`): Color of the center part, for rendering.
+        - `rotation` (`Vec3d`): Rotation of the center part in degrees.
+
+    Class Members:
+        - `attach`: Node containing the positions to attach the legs.
+        - `deformable`: Node containing the deformable part, if deformable.
+
+    Expected files in the "data/meshes/centerparts" directory:
+        - partName.stl: surface mesh for the visual model. 
+        - partName.json: file containing the initial position of the center part and the position of the legs'attach in local coordinates.
+
+    Example Usage:
+    ```python
+    from centerpart import CenterPart
+    from utils import addHeader, addSolvers
+    def createScene(root):
+        settings, modelling, simulation = addHeader(root)
+        addSolvers(simulation)
+
+        centerpart = root.addChild(CenterPart(name="CenterPart",
+                                             partName="whitepart",
+                                             color=[1, 1, 1, 1]))
+    ```
+    """
+
+    prefabData = [
+        {'name': 'positions', 'type': 'Rigid3::VecCoord', 'help': '', 'default': None},
+        {'name': 'partName', 'type': 'string', 'help': '', 'default': None},
+        {'name': 'model', 'type': 'string', 'help': 'model between tetra and beam', 'default': 'beam'},
+        {'name': 'massDensity', 'type': 'float', 'help': '', 'default': 1.220e-6},
+        {'name': 'poissonRatio', 'type': 'float', 'help': '', 'default': 0.45},
+        {'name': 'youngModulus', 'type': 'float', 'help': '', 'default': 3.5e4}, 
+        {'name': 'color', 'type': 'Vec4d', 'help': '', 'default': [1, 1, 1, 1]},
+        {'name': 'rotation', 'type': 'Vec3d', 'help': '', 'default': [0, 0, 0]},
+        {'name': 'collisionNodes', 'type': 'vector<Vec3d>', 'help': '', 'default': None},
+        {'name': 'collisionTriangles', 'type': 'vector<Triangle>', 'help': '', 'default': None},
+        {'name': 'mode', 'type': 'string', 'help': '', 'default': 'trial'}
+    ]
 
     def __init__(self, *args, **kwargs):
         Sofa.Prefab.__init__(self, *args, **kwargs)
 
         self._addRequiredPlugins()
 
-        filename = self.partName.value + '.json'
+        filename = self.partName.value +'.json'
         self._checkFile(filename)
         self._params = json.load(open(self._getFilePath(filename)))
 
@@ -26,13 +69,9 @@ class SamCenterPart(CenterPart):
             self.flip = True
 
         self._checkFile(self.partName.value + '.stl')
-        match self.type.value:
-            case "rigid":
-                self._addRigidCenterPart()
-            case _:
-                Sofa.msg_error("centerpart.py", 'Unknown model, value should be "deformable", or "rigid".')
-                return
-        if self.mode.value!='optimization':
+        self._addRigidCenterPart()
+
+        if self.mode.value!='optimization': #TO do replace with Enum class
             self._addVisualModel()
         self._addCollision()
     
@@ -55,19 +94,37 @@ class SamCenterPart(CenterPart):
             
         return None
     
+    def _checkFile(self, filename) -> bool:
+        """
+        Check if the file exists in the data/meshes/centerparts directory.
+        Returns True if it exists, False otherwise and logs an error.
+        """
+        if self._getFilePath(filename) is not None:
+            return True
+            
+        Sofa.msg_error(self.getName(), f'Missing file: {filename} in data/meshes/centerparts directory.')
+        return False
+    
     def _addRigidCenterPart(self):
         """
         Add a rigid center part to the simulation.
         """
 
         # Load the mesh and create the topology, mechanical object, and mass
-        self.addObject('MechanicalObject', template='Rigid3', position=self._params["initialPosition"],
-                       showObject=False, showObjectScale=20,
+        self.addObject('MechanicalObject', 
+                       template='Rigid3', 
+                       position=self._params["initialPosition"],
+                       showObject=False, 
+                       showObjectScale=20,
                        rotation=self.rotation)
         mass = self.addChild("ComputeMass")
-        mass.addObject("MeshSTLLoader", filename=self._getFilePath(self.partName.value + ".stl"))
-        mass.addObject('GenerateRigidMass', src=mass.MeshSTLLoader.linkpath, density=self.massDensity.value)
-        self.addObject('UniformMass', vertexMass=mass.GenerateRigidMass.rigidMass.linkpath)
+        mass.addObject("MeshSTLLoader", 
+                       filename=self._getFilePath(self.partName.value + ".stl"))
+        mass.addObject('GenerateRigidMass', 
+                       src=mass.MeshSTLLoader.linkpath, 
+                       density=self.massDensity.value)
+        self.addObject('UniformMass', 
+                       vertexMass=mass.GenerateRigidMass.rigidMass.linkpath)
 
         # This node contains the positions to attach the legs
         self.attach = self.addChild("LegsAttach")
@@ -76,8 +133,14 @@ class SamCenterPart(CenterPart):
             temp = attachposition[1]
             attachposition[1] = attachposition[3]
             attachposition[3] = temp
-        self.attach.addObject("MechanicalObject", position=attachposition, template="Rigid3",
-                              showObject=False, showObjectScale=10, showIndices=False, showIndicesScale=0.02)
+            
+        self.attach.addObject("MechanicalObject", 
+                              position=attachposition, 
+                              template="Rigid3",
+                              showObject=False,
+                              showObjectScale=10,
+                              showIndices=False,
+                              showIndicesScale=0.02)
         self.attach.addObject("RigidMapping", globalToLocalCoords=False)
 
     def _getIndicesDistribution(self, topology):
@@ -124,17 +187,11 @@ class SamCenterPart(CenterPart):
         The visual model is created using a mesh loaded from an STL file. The color of the model is set based on the parameters provided.
         The visual model is added to the appropriate node based on the type of center part (deformable or rigid).
         """
-        match self.type.value:
-            case "rigid":
-                visual = self.addChild("Visual")
-                visual.addObject("MeshSTLLoader", filename=self._getFilePath(self.partName.value + ".stl"))
-                visual.addObject("OglModel", src=visual.MeshSTLLoader.linkpath, color=self.color.value)
-                visual.addObject('RigidMapping')
-            case _:
-                visual = self.part.addChild("Visual")
-                visual.addObject("MeshSTLLoader", filename=self._getFilePath(self.partName.value + ".stl"), rotation=self.rotation)
-                visual.addObject("OglModel", src=visual.MeshSTLLoader.linkpath, color=self.color.value)
-                visual.addObject("BarycentricMapping")
+
+        visual = self.addChild("Visual")
+        visual.addObject("MeshSTLLoader", filename=self._getFilePath(self.partName.value + ".stl"))
+        visual.addObject("OglModel", src=visual.MeshSTLLoader.linkpath, color=self.color.value)
+        visual.addObject('RigidMapping')
 
     def _addRequiredPlugins(self):
         plugins = self.addChild("RequiredPlugins")
@@ -146,7 +203,9 @@ class SamCenterPart(CenterPart):
         # Needed to use components [OglModel]
         plugins.addObject('RequiredPlugin', name='Sofa.Component.Engine.Generate')
         # Needed to use components [GenerateRigidMass]
-
+        plugins.addObject('RequiredPlugin', name='Sofa.Component.Collision.Geometry')
+        plugins.addObject('RequiredPlugin', name='Sofa.Component.Engine.Select')
+        
     def _addCollision(self):
         collision = self.addChild('Collision')
         collision.addObject("MeshTopology",

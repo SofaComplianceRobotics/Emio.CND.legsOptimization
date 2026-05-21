@@ -90,9 +90,12 @@ def animation(target:list, initialPosition:list, movements:Movements, height:flo
     p = movements.getTargetPosition(initialPosition, height, factor)
     target.value = [*p]
 
-def distance(desiredPosition, maximumPosition,factor):
+def distance(desiredPosition, maximumPosition, factor):
     score = abs(dist(desiredPosition.getMechanicalState().position.value[-1][0:3],maximumPosition.getMechanicalState().position.value[-1][0:3]))
     print(score)
 
 if __name__ == "__main__":
-    movement = Movements()
+    movement = Movements(sequence='p0.75+ty+tx+tz+rx+rz')
+    if 'p' in movement.durationPerMovements.keys():
+        print('here')
+    #print(movement.durationPerMovements.keys())

@@ -1,11 +1,9 @@
 import Sofa
 import Sofa.ImGui as MyGui
 from dynamixelmotorsapi import DynamixelMotors
-from emioapi import EmioAPI
+from dynamixelmotorsapi import listFTDIDevices
 import threading
-import time
-from splib3.interface import serialport
-    
+import time    
 
 class samDynamixelMotors(DynamixelMotors):
     def __init__(self):
@@ -82,7 +80,7 @@ class MotorController(Sofa.Core.Controller):
         """
         Update the list of available Sam devices in the GUI.
         """
-        ports = EmioAPI.listEmioDevices()  
+        ports = listFTDIDevices()
         if ports is not None and len(ports) != 0:
             return ports
         return ["No Sam robots found"]   

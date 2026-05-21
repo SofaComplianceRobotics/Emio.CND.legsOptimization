@@ -35,17 +35,29 @@ sys.path.append(os.path.dirname(os.path.abspath(sys.argv[0]))+"/../..")
 o = importlib.import_module(os.path.splitext(os.path.basename(module))[0])
 
 # Create a study for optimization
-#module = optunahub.load_module(package="samplers/auto_sampler")
-study = optuna.create_study(storage = optuna.storages.InMemoryStorage(),
-                            sampler = optuna.samplers.CmaEsSampler(),#module.AutoSampler(), #Sampler is determined based on the study parameters
-                            pruner= optuna.pruners.HyperbandPruner(),#optuna.pruners.ThresholdPruner(upper=5), #Prune the study if the score exceeds the threashold
-                            )
+
+storage = optuna.storages.InMemoryStorage()
+
+sampler = optuna.samplers.CmaEsSampler()
+
+# module = optunahub.load_module(package="samplers/hill_climbing")
+# sampler = module.HillClimbingSampler(
+#                                    neighbor_size = 8,
+#                                    max_restarts = 5,
+#                                    seed = 42
+#                                    )
+
+# module = optunahub.load_module(package="samplers/auto_sampler")
+# sampler = module.AutoSampler()
+
+pruner = optuna.pruners.HyperbandPruner()
+# pruner = optuna.pruners.ThresholdPruner(upper=5)
+
+study = optuna.create_study(storage, sampler, pruner)
 
 # Optimize the objective function
 print(o.objective.__doc__)
 
-# createFolder(study)
-#optuna.logging.set_verbosity(optuna.logging.CRITICAL)
 study.optimize(func=o.objective,
                gc_after_trial=True, #Auto garbage clean to not saturate the memory
                n_trials=args.nTrials,

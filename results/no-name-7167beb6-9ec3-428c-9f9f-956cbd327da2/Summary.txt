@@ -1,0 +1,42 @@
+Study                  : no-name-7167beb6-9ec3-428c-9f9f-956cbd327da2
+- Start                : 2026-05-18 20:51:07.351507
+- End                  : 2026-05-18 21:19:05.814103
+- Duration             : 0:27:58.462596
+- Sampler              : AutoSampler
+- Pruner               : HyperbandPruner
+- Trials               : 1000
+-- Completed trials    : 10, 1.00 %
+-- Pruned trials       : 990, 99.00 %
+--- Unfeasible shapes  : 990, 100.00 %
+--- Unattained targets : 0, 0.00 %
+-- Failed trials       : 0, 0.00 %
+-- Parameters          :
+                         lowPt.rL1	: [1,80]
+                         lowPt.lL1	: [1,80]
+                         lowPt.rL2	: [1,80]
+                         lowPt.lL2	: [1,80]
+                         lowPt.x2	: [-60,30]
+                         lowPt.y2	: [-10,70]
+                         lowPt.rA2	: [-85,-5]
+                         lowPt.rL3	: [1,80]
+                         lowPt.lL3	: [1,80]
+                         highPt.rL1	: [1,80]
+                         highPt.lL1	: [1,80]
+                         highPt.rL2	: [1,80]
+                         highPt.lL2	: [1,80]
+                         highPt.x2	: [-60,30]
+                         highPt.y2	: [-10,130]
+                         highPt.rA2	: [-85,-5]
+                         highPt.rL3	: [1,80]
+                         highPt.lL3	: [1,80]
+-- Results             : 
+                         Trial number : 17, Value : 10.828059, Duration : 0:00:23.317615
+                         Trial number : 28, Value : 12.737990, Duration : 0:00:25.216785
+                         Trial number : 13, Value : 13.830510, Duration : 0:00:24.852459
+                         Trial number : 7, Value : 14.366416, Duration : 0:00:23.514012
+                         Trial number : 24, Value : 20.362500, Duration : 0:00:28.344546
+                         Trial number : 5, Value : 21.178102, Duration : 0:00:21.612390
+                         Trial number : 3, Value : 24.038618, Duration : 0:00:23.342664
+                         Trial number : 12, Value : 27.296988, Duration : 0:00:21.301475
+                         Trial number : 9, Value : 28.183194, Duration : 0:00:18.148417
+                         Trial number : 23, Value : 28.284791, Duration : 0:00:22.471289

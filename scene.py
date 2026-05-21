@@ -15,16 +15,19 @@ from animation import animation
 import numpy as np
 
 def createScene(rootnode):
-    rootnode.addObject('RequiredPlugin', name='Sofa.Component.Collision.Geometry')
-    rootnode.addObject('RequiredPlugin', name='Sofa.Component.Engine.Select')
     _, modelling, simulation = addHeader(rootnode, 
                                          inverse = True, 
                                          friction = 0, 
                                          withCollision = True
                                          )
+    rootnode.ConstraintSolver.epsilon = 1
+    rootnode.LocalMinDistance.setDataValues(
+                                            # alarmDistance = center_part.hThickness, 
+                                            # contactDistance = center_part.hThickness/10
+                                            alarmDistance = 1, 
+                                            contactDistance = 0.5
+                                            )
     
-    rootnode.LocalMinDistance.setDataValues(alarmDistance = 1 ,#center_part.hThickness/5, 
-                                            contactDistance = 0.5)
     addSolvers(simulation)
 
     rootnode.dt = movements.dt
@@ -50,8 +53,7 @@ def createScene(rootnode):
     sam = Sam(name = 'Sam',
               legs = [low_leg, high_leg]*3,
               centerpart = center_part,
-              mode = mode,
-              platformLevel = 2)
+              mode = mode)
     
     if not sam.isValid():
         rootnode.removeObject(AnimationManager(rootnode))
@@ -60,7 +62,7 @@ def createScene(rootnode):
     simulation.addChild(sam)
     sam.attachCenterPartToLegs()
     assembly = AssemblyController(sam)
-    assembly.duration = 0.01
+    assembly.duration = 0.001
     sam.addObject(assembly)
 
     # Add effector
@@ -69,6 +71,7 @@ def createScene(rootnode):
                             position = [[0, center_part.height/2, 0, 0, 0, 0, 1],
                                         [0, -center_part.height/2, 0, 0, 0, 0, 1]],
                             showObject = False)
+    
     sam.effector.addObject("RigidMapping",
                             index = 0)
 
@@ -77,24 +80,23 @@ def createScene(rootnode):
 
     effectorTarget.addObject('EulerImplicitSolver',
                              firstOrder = True)
+    
     effectorTarget.addObject('CGLinearSolver',
                              iterations = 50,
                              tolerance = 1e-10,
                              threshold = 1e-10)
-    
+
     effectorTarget.addObject('MechanicalObject',
                                 template = 'Rigid3',
-                                position = [[0, low_leg.legHeight+center_part.legHeightDifference+center_part.hThickness+40, 0, 0, 0, 0, 1],
-                                            [0, low_leg.legHeight-center_part.lDepth+40, 0, 0, 0, 0, 1]],
+                                position = [[0, high_leg.centerLine.endCoordinates[1]+center_part.hThickness, 0, 0, 0, 0, 1],
+                                            [0, low_leg.centerLine.endCoordinates[1]-center_part.lDepth, 0, 0, 0, 0, 1]],
                                 showObject = True,
                                 showObjectScale = 10)
-    
+
     #Sensor
     sensor = sam.CenterPart.addChild('Sensor')
     sensor.addObject('MechanicalObject',
-                     position = [[0.0, 40.0, 0.0]],
-                     #showObject = False,
-                     #drawMode = 2
+                     position = [[0.0, 20.0, 0.0]],
                      )
     
     sensor.addObject("UniformMass",
@@ -113,9 +115,10 @@ def createScene(rootnode):
     #             visuScale=1.0,
     #             )
     
-    if mode == 'optimization':   
+
+    if mode == 'trial':   
         sam.addInverseComponentAndGUI(targetMechaLink = effectorTarget.getMechanicalState().position.linkpath,
-                                      withGUI = False)
+                                      withGUI = True)
         animate(onUpdate = animation,
                 params = {'target':effectorTarget.getMechanicalState().position,
                           'initialPosition':np.copy(effectorTarget.getMechanicalState().position.value),
@@ -123,20 +126,18 @@ def createScene(rootnode):
                           'height':center_part.height/2
                         },
                 duration = movements.duration)
+        
     else:
         sam.addInverseComponentAndGUI(targetMechaLink = effectorTarget.getMechanicalState().position.linkpath,
-                                      orientationWeight = 57)
+                                      orientationWeight = 0)
         sam.addConnectionComponents()
-        
-        effectorTarget.MechanicalObject.position = [[0, low_leg.legHeight+center_part.legHeightDifference+center_part.hThickness+20, 0, 0, 0, 0, 1]]
-        sam.effector.MechanicalObject.position = [[0, center_part.height/2, 0, 0, 0, 0, 1]]
-        sam.effector.EffectorCoord.indices = [0]
-        sam.effector.EffectorOrientation.indices = [0]
 
-#         animate(onUpdate = distance,
-#                 params = {'desiredPosition':rootnode.Modelling.Target
-# ,
-#                         'maximumPosition':rootnode.Simulation.Sam.CenterPart
-#                         },
-#                 duration = param.duration)  
+        effectorTarget.MechanicalObject.position =  [effectorTarget.MechanicalObject.position.value[0]]
+        sam.effector.MechanicalObject.position = [sam.effector.MechanicalObject.position.value[0]]
+
+        if 'EffectorCoord' in [object.name.value for object in sam.effector.objects]:
+            sam.effector.EffectorCoord.indices = [0]
+        if 'EffectorOrientation' in [object.name.value for object in sam.effector.objects]:
+            sam.effector.EffectorOrientation.indices = [0]
+
     return rootnode

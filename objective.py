@@ -1,19 +1,21 @@
 # pyright: reportMissingImports=false, reportAttributeAccessIssue=false
 # pylint: disable=import-error
 import numpy as np
+from scipy.spatial.transform import Rotation
 import optuna
 
 import Sofa
 import SofaRuntime
-
+import os
 # import param
 from optimization.parameters import low_leg, high_leg, center_part, movements
 from scene import createScene
 
 def objective(trial)->float:
-    
-    # Generate study samples
-    generateSamples(trial)
+    # initialize Opt classes with yaml
+    # pydantic check IRT Jules Verne
+
+    generate_samples(trial) 
 
     # Create the Sofa simulation scene
     SofaRuntime.importPlugin('Sofa.Component')
@@ -24,166 +26,156 @@ def objective(trial)->float:
     root = createScene(root)
 
     if root is None:
-        trial.report(140,0)
+        #trial.report(140,0)
         trial.set_user_attr('prune','Unfeasible shape')
         raise optuna.TrialPruned()
 
     Sofa.Simulation.init(root)
 
-    Sofa.Simulation.animateNSteps(root,n_steps=movements.steps[0])
+    score_per_movement = [0]
 
-    score_per_movement=[0]*(len(movements.steps)-1)
+    for idx, _ in enumerate(movements.steps):
+        if 'p' == list(movements.durationPerMovements.keys())[idx]:
+            Sofa.Simulation.animateNSteps(root,n_steps = movements.steps[idx])
 
-    #print(root.Modelling.Target.getMechanicalState().position.value[0][1])
-    print(movements.steps)
-    for idx in range(len(movements.steps)-1):
+        else:
+            remaining_steps = range(movements.steps[idx-1]+1,movements.steps[idx]+1)
 
-        remaining_steps = range(movements.steps[idx]+1,movements.steps[idx+1]+1)
-        print(remaining_steps)
-        for step in remaining_steps:
-            Sofa.Simulation.animate(root, 0)
-            if step == (remaining_steps[-1]+remaining_steps[0]+1)/2:
-                score_per_movement[idx] = getScore(root)
+            for step in remaining_steps:
+                Sofa.Simulation.animate(root, 0)
+                track_trial(root,step,trial.number)
 
-            #print(f'({step}, {root.Modelling.Target.getMechanicalState().position.value[0][1]})')
-            trial.report(getScore(root), step)
+                if step == (remaining_steps[-1]+remaining_steps[0]+1)/2:
+                    score_per_movement.append(get_score(root))
 
-            # if trial.should_prune():
-            #     Sofa.Simulation.unload(root)
-            #     trial.set_user_attr('prune','Unattained target')
-            #     raise optuna.TrialPruned()
+                trial.report(get_score(root), step)
     
     Sofa.Simulation.unload(root)
     
-    return getCumulatedScore(score_per_movement)
+    return get_total_score(score_per_movement)
 
-def getScore(node)->float:
+def get_score(node)->float:
 
-    desired_position = node.Modelling.Target.getMechanicalState().position.value[0][0:3]
-    maximum_position = node.Simulation.Sam.CenterPart.getMechanicalState().position.value[0][0:3]
-    return np.linalg.norm(np.subtract(desired_position,maximum_position))-center_part.legHeightDifference/2
+    top_target_position = node.Modelling.Target.getMechanicalState().position.value[0][0:3]
+    effector_position = node.Simulation.Sam.CenterPart.getMechanicalState().position.value[0][0:3]
+    
+    distance_score = abs(np.linalg.norm(np.subtract(top_target_position,effector_position))-center_part.height/2)
+    
+    top_target_angle = node.Simulation.Sam.CenterPart.getMechanicalState().position.value[0][3:] 
+    effector_angle =node.Modelling.Target.getMechanicalState().position.value[0][3:] 
+    effector_angle = (Rotation.from_euler('y',180,degrees=True) * Rotation.from_quat(effector_angle)).as_quat()
 
-def getCumulatedScore(scores)->float:
+    #angle_score = np.linalg.norm(np.subtract(top_target_angle,effector_angle))
+    angle_score = 1-np.dot(top_target_angle,effector_angle)**2
+
+    return np.linalg.norm(np.array([distance_score,angle_score]))
+
+def get_total_score(scores)->float:
     
     return np.linalg.norm(scores)
 
-def generateSamples(trial)->None:
-    # param.sLPulley = trial.suggest_float(name = sCL.name+'Pulley',
-    #                                      low = 5,
-    #                                      high = 10,
-    #                                      step = 5)
-    # param.lLPulley = trial.suggest_float(name = lCL.name+'Pulley',
-    #                                      low = 5,
-    #                                      high = 10,
-    #                                      step = 5)
-    # param.sLMotor = trial.suggest_float(name = sCL.name+'Motor',
-    #                                      low = 70,
-    #                                      high = 120,
-    #                                      step = 5)
-    # param.lLMotor = trial.suggest_float(name = lCL.name+'Motor',
-    #                                      low = 70,
-    #                                      high = 120,
-    #                                      step = 5)
+def generate_samples(trial)->None:
 
     for idx in range(1,low_leg.centerLine.nPts-1):
-    #for idx in range(low_leg.centerLine.nPts):
-        #small Leg : Right Handle Length
-        sRL = trial.suggest_float(name = low_leg.name+'Pt.rL'+str(idx),
-                                  low = 10.0,
-                                  high = 100.0)
-        #small Leg : Left Handle Length
-        # sLL = trial.suggest_float(name = sCL.name+'Pt.lL'+str(idx),
-        #                           low = 10.0,
-        #                           high = 100.0)
         
-        #leg update
-        # sCL.points[idx].update(rightHandleLength = sRL,
-        #                        leftHandleLength = sLL)
+        low_leg_right_handle_length = trial.suggest_float(name = f'{low_leg.name}Pt.rL{idx}',
+                                                          low = 1.0,
+                                                          high = 80.0)
+        
+        low_leg_left_handle_length = trial.suggest_float(name = f'{low_leg.name}Pt.lL{idx}',
+                                                         low = 1.0,
+                                                         high = 80.0)
         
         if idx == 1:
-            low_leg.centerLine.points[idx].update(rightHandleLength = sRL,
-                                                  sameHandleLength=False)
+            low_leg.centerLine.points[idx].update(rightHandleLength = low_leg_right_handle_length,
+                                                  sameHandleLength = False)
         if idx == low_leg.centerLine.nPts-2:
             low_leg.centerLine.points[idx].update(rightHandleLength = 1,
-                                               leftHandleLength = sRL)
+                                                  leftHandleLength = low_leg_left_handle_length)
         
         if idx > 1 and idx < (low_leg.centerLine.nPts-2):
-        #if idx > 0 and idx < (low_leg.centerLine.nPts-1):
-            low_leg.centerLine.points[idx].update(rightHandleLength = sRL,
-                                                sameHandleLength = True)
-            #small Leg : x coordinate
-            sX  = trial.suggest_float(name = low_leg.name+'Pt.x'+str(idx),
-                                      low = low_leg.centerLine.startCoordinates[1],
-                                      high = low_leg.centerLine.endCoordinates[1])
-            #small Leg : y coordinate
-            sY  = trial.suggest_float(name = low_leg.name+'Pt.y'+str(idx),
-                                      low = low_leg.centerLine.startCoordinates[0],
-                                      high = low_leg.centerLine.endCoordinates[0])
-            #small Leg : Right Handle Angle
-            sRA = trial.suggest_float(name = low_leg.name+'Pt.rA'+str(idx),
-                                      low = -80,
-                                      high = -20)
-            #small Leg : Left Handle Angle
-            # sLA = trial.suggest_float(name = sLegCL.name+'Pt.lA'+str(idx),
-            #                            low = 90,
-            #                            high = 180)
+
+            low_leg_x  = trial.suggest_float(name = f'{low_leg.name}Pt.x{idx}',
+                                             low = low_leg.centerLine.startCoordinates[0],
+                                             high = low_leg.centerLine.endCoordinates[0])
+
+            low_leg_y  = trial.suggest_float(name = f'{low_leg.name}Pt.y{idx}',
+                                             low = low_leg.centerLine.startCoordinates[1],
+                                             high = low_leg.centerLine.endCoordinates[1])
+
+            low_leg_right_handle_angle = trial.suggest_float(name = f'{low_leg.name}Pt.rA{idx}',
+                                                             low = -85,
+                                                             high = -5)
             
-            # param.sLegCL.point[idx].update(coordinates=[sX,sY],
-            #                                rightHandleAngle=sRA,
-            #                                leftHandleAngle=sLA)
-            low_leg.centerLine.points[idx].update(coordinates = [sX,sY],
-                                               rightHandleAngle = sRA,
-                                               angleUnit = 'deg')
+            # low_leg_left_handle_angle = trial.suggest_float(name = f'{low_leg.name}Pt.lA{idx}',
+            #                                                 low = 80,
+            #                                                 high = 170)
+            
+            low_leg.centerLine.points[idx].update(coordinates = [low_leg_x,low_leg_y],
+                                                  rightHandleAngle = low_leg_right_handle_angle,
+                                                  #leftHandleAngle = low_leg_left_handle_angle,
+                                                  rightHandleLength = low_leg_right_handle_length,
+                                                  leftHandleLength = low_leg_left_handle_length,
+                                                  sameHandleLength = False,
+                                                  sameHandleAngle = True,
+                                                  angleUnit = 'deg')
         
 
     for idx in range(1,high_leg.centerLine.nPts-1):
-    #for idx in range(high_leg.centerLine.nPts):
-        #small Leg : Right Handle Length
-        lRL = trial.suggest_float(name = high_leg.name+'Pt.rL'+str(idx),
-                                  low = 10.0,
-                                  high = 100.0)
-        #small Leg : Left Handle Length
-        # lLL = trial.suggest_float(name = lCL.name+'Pt.lL'+str(idx),
-        #                           low = 10.0,
-        #                           high = 100.0)
-        # lCL.points[idx].update(rightHandleLength=lRL,
-        #                        leftHandleLength=lLL)
+
+        high_leg_right_handle_length = trial.suggest_float(name = f'{high_leg.name}Pt.rL{idx}',
+                                                    low = 1.0,
+                                                    high = 80.0)
+        
+        high_leg_left_handle_length = trial.suggest_float(name = f'{high_leg.name}Pt.lL{idx}',
+                                                          low = 1.0,
+                                                          high = 80.0)
+        
         if idx == 1:
-            high_leg.centerLine.points[idx].update(rightHandleLength = lRL,
-                                               sameHandleLength=False)
+            high_leg.centerLine.points[idx].update(rightHandleLength = high_leg_right_handle_length,
+                                                   sameHandleLength = False)
         if idx == high_leg.centerLine.nPts-2:
-            high_leg.centerLine.points[idx].update(rightHandleLength = 1,
-                                               leftHandleLength = lRL)
+            high_leg.centerLine.points[idx].update(leftHandleLength = high_leg_left_handle_length,
+                                                   sameHandleLength = False)
 
         if idx > 1 and idx < (high_leg.centerLine.nPts-2):
-        #if idx > 0 and idx < (high_leg.centerLine.nPts-1):
-            high_leg.centerLine.points[idx].update(rightHandleLength = lRL,
-                                                sameHandleLength = True)
-            #small Leg : x coordinate
-            lX  = trial.suggest_float(name = high_leg.name+'Pt.x'+str(idx),
-                                      low = high_leg.centerLine.startCoordinates[0],
-                                      high = high_leg.centerLine.endCoordinates[0])
-            #small Leg : y coordinate
-            lY  = trial.suggest_float(name = high_leg.name+'Pt.y'+str(idx),
-                                      low = high_leg.centerLine.startCoordinates[1],
-                                      high = high_leg.centerLine.endCoordinates[1])
-            #small Leg : Right Handle Angle
-            lRA = trial.suggest_float(name = high_leg.name+'Pt.rA'+str(idx),
-                                      low = -80,
-                                      high = -20)
-            #small Leg : Left Handle Angle
-            # lLA = trial.suggest_float(name = lLegCL.name+'Pt.lA'+str(idx),
-            #                           low = 90,
-            #                           high = 180)
-            # param.lLegCL.point[idx].update(coordinates=[lX,lY],
-            #                                rightHandleAngle=lRA,
-            #                                leftHandleAngle=lLA)
-            high_leg.centerLine.points[idx].update(coordinates = [lX,lY],
-                                               rightHandleAngle = lRA,
-                                               angleUnit = 'deg')
+
+            high_leg_x  = trial.suggest_float(name = f'{high_leg.name}Pt.x{idx}',
+                                              low = high_leg.centerLine.startCoordinates[0],
+                                              high = high_leg.centerLine.endCoordinates[0])
+
+            high_leg_y  = trial.suggest_float(name = f'{high_leg.name}Pt.y{idx}',
+                                              low = high_leg.centerLine.startCoordinates[1],
+                                              high = high_leg.centerLine.endCoordinates[1])
+
+            high_leg_right_handle_angle = trial.suggest_float(name = f'{high_leg.name}Pt.rA{idx}',
+                                                              low = -85,
+                                                              high = -5)
+            
+            # high_leg_left_handle_angle = trial.suggest_float(name = f'{high_leg.name}Pt.lA{idx}',
+            #                                                  low = 80,
+            #                                                  high = 170)
+            
+            high_leg.centerLine.points[idx].update(coordinates = [high_leg_x,high_leg_y],
+                                                   rightHandleAngle = high_leg_right_handle_angle,
+                                                   #leftHandleAngle = high_leg_left_handle_angle,
+                                                   rightHandleLength = high_leg_right_handle_length,
+                                                   leftHandleLength = high_leg_left_handle_length,
+                                                   sameHandleLength = False,
+                                                   sameHandleAngle = True,
+                                                   angleUnit = 'deg')
+            
     high_leg.update()
     low_leg.update()
+    
     high_leg.centerLine.exportPlot(name=f'{high_leg.name}-{trial.number}')
     low_leg.centerLine.exportPlot(name=f'{low_leg.name}-{trial.number}')
 
-    
+def track_trial(node,step,trial)->None:
+    target_position = node.Modelling.Target.getMechanicalState().position.value[0][1]
+    center_part_position = node.Simulation.Sam.CenterPart.getMechanicalState().position.value[0][1]
+    path = os.path.dirname(os.path.realpath(__file__))+f"/data/scores/{trial}.txt"
+    with open(path,'a',encoding="utf-8") as f:
+        f.write(f'Step : {step}, Score = {get_score(node)}, Target : {target_position}, TCP : {center_part_position}\n')
+
+

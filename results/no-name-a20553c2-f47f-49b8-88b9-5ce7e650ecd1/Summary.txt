@@ -1,0 +1,35 @@
+Study                  : no-name-a20553c2-f47f-49b8-88b9-5ce7e650ecd1
+- Start                : 2026-05-13 15:51:16.986473
+- End                  : 2026-05-13 15:51:21.209915
+- Duration             : 0:00:04.223442
+- Sampler              : CmaEsSampler
+- Pruner               : HyperbandPruner
+- Trials               : 10
+-- Completed trials    : 0, 0.00 %
+-- Pruned trials       : 10, 100.00 %
+--- Unfeasible shapes  : 10, 100.00 %
+--- Unattained targets : 0, 0.00 %
+-- Failed trials       : 0, 0.00 %
+-- Parameters          :
+                         lowPt.rL1	: [1,200]
+                         lowPt.lL1	: [1,200]
+                         lowPt.rL2	: [1,200]
+                         lowPt.lL2	: [1,200]
+                         lowPt.x2	: [0,75]
+                         lowPt.y2	: [0,75]
+                         lowPt.rA2	: [-80,-10]
+                         lowPt.lA2	: [80,170]
+                         lowPt.rL3	: [1,200]
+                         lowPt.lL3	: [1,200]
+                         highPt.rL1	: [1,200]
+                         highPt.lL1	: [1,200]
+                         highPt.rL2	: [1,200]
+                         highPt.lL2	: [1,200]
+                         highPt.x2	: [0,75]
+                         highPt.y2	: [0,75]
+                         highPt.rA2	: [-80,-10]
+                         highPt.lA2	: [80,170]
+                         highPt.rL3	: [1,200]
+                         highPt.lL3	: [1,200]
+-- Results             : 
+                         There are no complete trials !

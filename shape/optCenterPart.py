@@ -12,6 +12,7 @@ STL_DIRECTORY = os.path.dirname(os.path.realpath(__file__))#+'/data/cad/
 
 class OptCenterPart:
     def __init__(self,
+                 #parameters=ParmarClass())
                  name:str = 'connector',
                  density:float = 1.22e-6,
                  poissonRatio:float = 0.45,
@@ -58,19 +59,24 @@ class OptCenterPart:
         high_fixture_thickness = 2*self.hThickness+high_cross_section[1]
         high_hexagon_height = self.hDepth + self.hThickness
 
-        cone_height = self.height
-        cone = cq.Workplane("ZX",origin=(0,0,0))
-        cone = cone.cylinder(radius=high_diameter/2,
-                             height=cone_height)
+        center_part_height = self.height
+        cone_height = center_part_height-low_hexagone_height-high_hexagon_height
+
+        cone = cq.Workplane("ZX",origin=(0,-cone_height/2,0))
+        # cone = cone.cylinder(radius=high_diameter/2,
+        #                      height=cone_height)
         
-        low_hexagon = cq.Workplane("ZX",origin=(0,-cone_height/2,0))
+        cone = cone.circle(low_diameter/2).workplane(offset=cone_height).circle(high_diameter/2).loft()
+
+
+        low_hexagon = cq.Workplane("ZX",origin=(0,-center_part_height/2,0))
         low_hexagon = low_hexagon.polygon(nSides=6,
                                           circumscribed=True,
                                           diameter=low_diameter)
         low_hexagon = low_hexagon.extrude(low_hexagone_height)
         low_hexagon = low_hexagon.edges('|Y').fillet(1/2*low_diameter-sqrt(3)/2*low_fixture_width)
         
-        high_hexagon = cq.Workplane("ZX",origin=(0,cone_height/2-high_hexagon_height,0))
+        high_hexagon = cq.Workplane("ZX",origin=(0,center_part_height/2-high_hexagon_height,0))
         high_hexagon = high_hexagon.polygon(nSides=6,
                                             circumscribed=True,
                                             diameter=high_diameter)
@@ -87,7 +93,7 @@ class OptCenterPart:
             
             high_fixtures_out = cq.Workplane("ZX",
                                             origin = (x,
-                                                    (cone_height-high_fixture_height)/2,
+                                                    (center_part_height-high_fixture_height)/2,
                                                     z))
             
             high_fixtures_out = high_fixtures_out.box(length = high_fixture_thickness,
@@ -100,12 +106,9 @@ class OptCenterPart:
             high_fixtures_out = high_fixtures_out.edges('|Y').filter(lambda e:e.startPoint().z**2+e.startPoint().x**2 > (x**2+z**2) )
             high_fixtures_out = high_fixtures_out.fillet(high_thickness)
 
-            # x -= high_thickness/2 * cos(angle_rad)
-            # z -= high_thickness/2 * sin(angle_rad)
-
             high_fixtures_in = cq.Workplane("ZX",
                                             origin=(x,
-                                                    (cone_height-high_fixture_height-high_thickness)/2,
+                                                    (center_part_height-high_fixture_height-high_thickness)/2,
                                                     z))
 
             high_fixtures_in = high_fixtures_in.box(length=high_fixture_thickness-2*high_thickness,
@@ -120,14 +123,13 @@ class OptCenterPart:
 
             high_fixtures = high_fixtures.union(high_fixtures_out)
 
-
             # low fixture
             x = -(low_diameter+low_fixture_thickness)/2 * cos(angle_rad)
             z = -(low_diameter+low_fixture_thickness)/2 * sin(angle_rad)
             
             low_fixtures_out = cq.Workplane("ZX",
                                             origin = (x,
-                                                    -(cone_height-low_fixture_height)/2,
+                                                    -(center_part_height-low_fixture_height)/2,
                                                     z))
             
             low_fixtures_out = low_fixtures_out.box(length = low_fixture_thickness,
@@ -141,12 +143,9 @@ class OptCenterPart:
             low_fixtures_out = low_fixtures_out.edges('|Y').filter(lambda e:e.startPoint().z**2+e.startPoint().x**2 > (x**2+z**2) )
             low_fixtures_out = low_fixtures_out.fillet(low_thickness)
 
-            # x += low_thickness/2 * cos(angle_rad)
-            # z += low_thickness/2 * sin(angle_rad)
-
             low_fixtures_in = cq.Workplane("ZX",
                                         origin=(x,
-                                                -(cone_height-low_fixture_height+low_thickness)/2,
+                                                -(center_part_height-low_fixture_height+low_thickness)/2,
                                                 z))
 
             low_fixtures_in = low_fixtures_in.box(length=low_fixture_thickness-2*low_thickness,
@@ -209,18 +208,20 @@ class OptCenterPart:
         side_surface_arc_angle = 1.5*self.hcrossSection[0]/high_radius
         
         # Create profile line in r-z plane
-        side_surface_y_min = -self.height/2
+        side_surface_y_min = -self.height/2+self.lThickness+self.lDepth
         side_surface_y_max = self.height/2-self.hThickness-self.hDepth
 
         p1 = occGeo.addPoint(low_radius, side_surface_y_min,0)
         p2 = occGeo.addPoint(high_radius, side_surface_y_max,0)
+        p3 = occGeo.addPoint(low_radius, -self.height/2,0)
         
-        line = occGeo.addLine(p1, p2)
-        occGeo.rotate([(1, line)],0, 0, 0, 0, 1, 0,-pi/2-side_surface_arc_angle/2)
+        line1 = occGeo.addLine(p1, p2)
+        line2 = occGeo.addLine(p1,p3)
+        occGeo.rotate([(1, line1),(1,line2)],0, 0, 0, 0, 1, 0,-pi/2-side_surface_arc_angle/2)
 
         # Revolve around z-axis to create lateral surface
 
-        side_surface1 = occGeo.revolve([(1, line)], 0, 0, 0, 0, 1, 0,side_surface_arc_angle )
+        side_surface1 = occGeo.revolve([(1, line1),(1,line2)], 0, 0, 0, 0, 1, 0,side_surface_arc_angle )
         side_surface2 = occGeo.copy(side_surface1)
         occGeo.rotate(side_surface2,0,0,0,0,1,0,2*pi/3)
         side_surface3 = occGeo.copy(side_surface1)
@@ -270,9 +271,10 @@ class OptCenterPart:
         self.lThickness = data['lThickness']
         self.lDiameter = data['lDiameter']
         self.legHeightDifference = data['height']
+        self.height = self.legHeightDifference+self.lDepth+self.hThickness
 
 if __name__ =='__main__':
-    center_part = OptCenterPart()
-    center_part.getCollisionTopology()
-    #center_part.exportStl()
+    center_part = OptCenterPart(lDiameter=50,hDiameter=50)
+    #center_part.getCollisionTopology()
+    center_part.exportStl()
    

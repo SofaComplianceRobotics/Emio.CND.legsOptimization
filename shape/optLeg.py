@@ -248,6 +248,26 @@ class OptLeg:
                 volume.exportBrep(self.name+'.brep')
             return False
 
+    def exportCadQuery(self, path=CAD_DIRECTORY, name=None, extension='.step'):
+        os.chdir(path)
+        if name is None:
+            name=self.name
+        curves = self.centerLine.path.asSegments()
+        start = curves[0].start
+        crossSection = cq.Workplane("XZ",origin=(0,start.y,start.x)).rect(*self.crossSection)
+        wire = cq.Workplane("YZ")
+        for curve in curves:
+            wire = wire.bezier([(curve.start.y,curve.start.x),
+                                (curve.points[1].y,curve.points[1].x),
+                                (curve.points[2].y,curve.points[2].x),
+                                (curve.end.y,curve.end.x)])
+        volume = crossSection.sweep(wire,multisection=True,transition='round')
+        evalVol = volume.val()
+        if evalVol.isValid() and not evalVol.isNull():
+            return volume.export(name+extension)
+        else:
+            return False
+
     def getTopologyCADQuery(self,debug=False)->list:
         self._getShapeCADQuery(debug)
         

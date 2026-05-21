@@ -3,7 +3,7 @@ import os
 from optuna.trial import TrialState, FrozenTrial
 from optuna.study import Study
 from optimization.parameters import low_leg, high_leg, center_part
-from optimization.processing import exportSimulationData,exportTrialParams
+from optimization.processing import exportSimulationData,exportTrial
 
 #Data Handling
 
@@ -35,25 +35,27 @@ class SaveCompletedTrial:
             os.chdir(os.path.dirname(os.path.realpath(__file__))+'/../')
             os.makedirs(f'results/{study.study_name}/{trial.number}')
             savePath = os.path.dirname(os.path.realpath(__file__))+f'/../results/{study.study_name}/{trial.number}/'
-            low_leg.update(params=trial.params)
-            high_leg.update(params=trial.params)
+            
+            #here
+            # low_leg.update(params=trial.params)
+            # high_leg.update(params=trial.params)
 
             if self.savePlot:
                 low_leg.centerLine.exportPlot(path = savePath,
-                                           title=f'Leg : {low_leg.centerLine.name}, study : {study.study_name}, trial : {trial.number}')
+                                              title=f'Leg : {low_leg.centerLine.name}, study : {study.study_name}, trial : {trial.number}')
                 high_leg.centerLine.exportPlot(path = savePath,
-                                           title=f'Leg : {high_leg.centerLine.name}, study : {study.study_name}, trial : {trial.number}')
+                                               title=f'Leg : {high_leg.centerLine.name}, study : {study.study_name}, trial : {trial.number}')
             
             if self.saveSTL:
                 low_leg.exportSTLCadQuery(path = savePath)
                 high_leg.exportSTLCadQuery(path = savePath)
 
             if self.saveParams:
-                data = {}
-                data[low_leg.centerLine.name] = low_leg.centerLine.getControlPoints()
-                data[high_leg.centerLine.name] = high_leg.centerLine.getControlPoints()
+                # data = {}
+                # data[low_leg.centerLine.name] = low_leg.centerLine.getControlPoints()
+                # data[high_leg.centerLine.name] = high_leg.centerLine.getControlPoints()
                 #exportSimulationData(data,savePath + 'params.json')
-                exportTrialParams(low_leg,high_leg,center_part,'params.json')
+                exportTrial(low_leg,high_leg,center_part,'params.json')
 
 class RepeatTrial:
     def __init__(self,maxIteration:int):

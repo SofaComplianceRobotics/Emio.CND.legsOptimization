@@ -15,9 +15,10 @@ from scipy.spatial.transform import Rotation
 from beziers.cubicbezier import CubicBezier
 from beziers.point import Point
 from beziers.path import BezierPath
+import cadquery as cq
 
-CAD_DIRECTORY = os.path.dirname(os.path.realpath(__file__))+'/../../EmioLabs/assets/data/meshes/legs/'
-FIG_DIRECTORY = os.path.dirname(os.path.realpath(__file__))+'/../data/plots/'
+CAD_DIRECTORY = os.path.dirname(os.path.realpath(__file__))+'/../data/meshes/legs/'
+FIG_DIRECTORY = os.path.dirname(os.path.realpath(__file__))+'/../data/'#+'/data/figs/'
 STL_DIRECTORY = os.path.dirname(os.path.realpath(__file__))#+'/data/cad/
 
 if __name__ =='__main__' or __name__ == 'centerLine':
@@ -64,6 +65,8 @@ class CenterLine:
         if  origin is not None:
             self._initOrigin()
         
+        self.startCoordinates = self.points[0].coordinates
+        self.endCoordinates = self.points[-1].coordinates
         self.computePath()
 
     def computePath(self):
@@ -129,11 +132,6 @@ class CenterLine:
         path = BezierPath.fromSegments(curves)
         path.closed=False
         path = path.removeIrrelevantSegments()
-
-        # import matplotlib.pyplot as plt
-        # fig, ax = plt.subplots()
-        # path.plot(ax=ax)
-        # plt.show()
 
         return path
 
@@ -244,6 +242,37 @@ class CenterLine:
                     )
         plt.close()
 
+    def _nodesSvg(self, close=False):
+        nodes = self.path.asNodelist()
+        if not nodes:
+            return ""
+        parts = [f"M{nodes[0].x},{nodes[0].y}"]
+        parts += [f"L{node.x},{node.y}" for node in nodes[1:]]
+        if close:
+            parts.append("Z")
+        return " ".join(parts)
+    
+    def exportSvg(self,name=None,withNodes=True,path=CAD_DIRECTORY):
+        os.chdir(path)
+        if name is None:
+            name=self.name
+
+        path_data = self.path.asSVGPath()
+        if withNodes:
+            bezier_data = self._nodesSvg()
+        else:
+            bezier_data = ''
+        
+        width = self.path.bounds().width
+        height = self.path.bounds().height
+
+        svg_content = f'''<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">
+        <path d="{path_data}" stroke="black" fill="none" stroke-width="2" transform="rotate(-180 100 100) translate(-300 150) scale(3.8) "/>
+        <path d="{bezier_data}" stroke="black" fill="none" stroke-width="2" transform="rotate(-180 100 100) translate(-300 150) scale(3.8) "/>
+        </svg>'''
+        with open(name+'.svg', 'w',encoding='utf-8') as f:
+            f.write(svg_content)
+
     def getControlPoints(self) -> list[list[list[int|float]|int|float]]:
         leg=[]
         for point in self.points:
@@ -325,6 +354,8 @@ class CenterLine:
         if 'controlPoint' in kwargs:
             self.setCurvePoints(arrayCP=kwargs['controlPoint'])
 
+        self.endCoordinates = self.points[-1].coordinates
+        self.startCoordinates = self.points[0].coordinates
         self.computePath()
     
     def getTFromLength(self,
@@ -375,6 +406,19 @@ class CenterLine:
         
         return t
 
+    def exportDxf(self,path=CAD_DIRECTORY, name=None):
+        os.chdir(path)
+        if name is None:
+            name = self.name
+        curves = self.path.asSegments()
+        wire = cq.Workplane("YZ")
+        for curve in curves:
+            wire = wire.bezier([(curve.start.y,curve.start.x),
+                                (curve.points[1].y,curve.points[1].x),
+                                (curve.points[2].y,curve.points[2].x),
+                                (curve.end.y,curve.end.x)])
+        wire.export(name+'.dxf')
+        
 if __name__=="__main__":    
     os.system("clear||cls")
     # sCP = [[[0,0],20,90],
@@ -392,9 +436,4 @@ if __name__=="__main__":
                    numberOfPoints=5,
                    #controlPoints=sCP
                    )
-    #l.getBeams(10)
-    # l.plot(show=False)
-    l.plotBeams(30)
-    # plt.show()
-    #print(l.getBeams(10))
-    #l.plot()
+    l.exportDxf()

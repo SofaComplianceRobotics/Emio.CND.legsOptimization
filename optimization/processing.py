@@ -14,7 +14,7 @@ def exportSimulationData(data:dict,filepath:str):
     with open(filepath,'w',encoding="utf-8") as f:
         dump(data,f)
 
-def exportTrialParams(low_leg:OptLeg, high_leg:OptLeg, centerPart:OptCenterPart, filepath:str)->dict:
+def exportTrial(low_leg:OptLeg, high_leg:OptLeg, centerPart:OptCenterPart, filepath:str)->dict:
     
     trialData = {}
 
