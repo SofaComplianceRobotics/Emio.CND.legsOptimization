@@ -21,7 +21,7 @@ CAD_DIRECTORY = os.path.dirname(os.path.realpath(__file__))+'/../data/meshes/leg
 FIG_DIRECTORY = os.path.dirname(os.path.realpath(__file__))+'/../data/'#+'/data/figs/'
 STL_DIRECTORY = os.path.dirname(os.path.realpath(__file__))#+'/data/cad/
 
-if __name__ =='__main__' or __name__ == 'centerLine':
+if __name__ == '__main__':
     from curvePoint import CurvePoint
 else:
     from shape.curvePoint import CurvePoint

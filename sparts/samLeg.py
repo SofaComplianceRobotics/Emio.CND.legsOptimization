@@ -132,7 +132,10 @@ class SamLeg(Sofa.Prefab):
                 q1.rotateFromQuat(q2)
                 q1.normalize()
                 position[0][3:7] = q1
-                
+
+                # q1 = Rotation.from_quat(position[0][3:7])
+                # q2 = Rotation.from_quat([1,0,0,0])
+                # position[0][3:7] = (q1 * q2).as_quat()
                 #position[0][3:7] = (Rotation.from_quat(position[0][3:7])*Rotation.from_quat([1,0,0,0])).as_quat()
 
         if self.collisionNodes.value.any():
@@ -371,7 +374,7 @@ class SamLeg(Sofa.Prefab):
 
         #First the base
         
-        boxes = [[0, -5., -5., 10., 15., 5.]]
+        boxes = [[0, 0, -5., 10., 30., 5.]]
         
         tr = positions[0]
         indice = int(self.name.value[-1])
@@ -401,12 +404,13 @@ class SamLeg(Sofa.Prefab):
         self.leg.addObject('BoxROI',
                            name = 'legEndMotor', 
                            template ='Vec3',
+                           drawROI = True,
                            position = positions,
                            orientedBox = obox)
 
 
         # Second the extremity
-        boxes = [[0, -5., -5., 10., 5., 5.]]
+        boxes = [[0, -15., -5., 10., 2.5, 5.]]
         for idx,box in enumerate(boxes):
             obox[idx] = [0,box[1],box[2],
                          0,box[1],box[5],
@@ -424,6 +428,7 @@ class SamLeg(Sofa.Prefab):
         self.leg.addObject('BoxROI',
                            name = 'legEndTCP',
                            template ='Vec3',
+                           drawROI = True,
                            position = positions,
                            orientedBox = obox)
 

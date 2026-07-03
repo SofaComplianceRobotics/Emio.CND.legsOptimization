@@ -10,10 +10,6 @@ from math import pi
 import gmsh
 import cadquery as cq
 from json import loads
-from beziers.path import BezierPath
-from beziers.line import Line
-from beziers.point import Point
-from beziers.segment import Segment
 
 if __name__ =='__main__' or __name__=='optLeg':
     from centerLine import CenterLine

@@ -96,24 +96,17 @@ def createScene(rootnode):
     #Sensor
     sensor = sam.CenterPart.addChild('Sensor')
     sensor.addObject('MechanicalObject',
-                     position = [[0.0, 20.0, 0.0]],
-                     )
+                     position = [[0.0, center_part.height/2+20.0, 0.0]],
+                     showObject = True,
+                     showColor=[1,0,0,1],
+                     showObjectScale = 5,
+                     drawMode= 1)
     
     sensor.addObject("UniformMass",
                      totalMass = weight)
     
     sensor.addObject("RigidMapping",
                      index = 0)
-
-    # sensor.addObject("ForcePointActuator", 
-    #             name="ForcePointActuator",
-    #             indices=[0],
-    #             direction=[0, 1, 0],
-    #             applyForce=False, # We only want to apply the force when the assembly is done
-    #             showForce=True, 
-    #             maxForceVariation = 1,
-    #             visuScale=1.0,
-    #             )
     
 
     if mode == 'trial':   

@@ -38,22 +38,26 @@ o = importlib.import_module(os.path.splitext(os.path.basename(module))[0])
 
 storage = optuna.storages.InMemoryStorage()
 
-sampler = optuna.samplers.CmaEsSampler()
+#sampler = optuna.samplers.CmaEsSampler()
+
+#sampler = optuna.samplers.TPESampler()
 
 # module = optunahub.load_module(package="samplers/hill_climbing")
-# sampler = module.HillClimbingSampler(
-#                                    neighbor_size = 8,
-#                                    max_restarts = 5,
-#                                    seed = 42
-#                                    )
+# sampler = module.HillClimbingSampler()
 
 # module = optunahub.load_module(package="samplers/auto_sampler")
 # sampler = module.AutoSampler()
 
-pruner = optuna.pruners.HyperbandPruner()
-# pruner = optuna.pruners.ThresholdPruner(upper=5)
+# module = optunahub.load_module(package="samplers/nelder_mead")
+# sampler = module.NelderMeadSampler(seed=123)
 
-study = optuna.create_study(storage, sampler, pruner)
+module = optunahub.load_module("samplers/cma_es_refinement")
+sampler = module.CmaEsRefinementSampler(seed=42)
+
+pruner = optuna.pruners.HyperbandPruner()
+#pruner = optuna.pruners.ThresholdPruner(upper=5)
+
+study = optuna.create_study(storage = storage, sampler = sampler, pruner =pruner)
 
 # Optimize the objective function
 print(o.objective.__doc__)

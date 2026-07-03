@@ -74,14 +74,14 @@ class OptCenterPart:
                                           circumscribed=True,
                                           diameter=low_diameter)
         low_hexagon = low_hexagon.extrude(low_hexagone_height)
-        low_hexagon = low_hexagon.edges('|Y').fillet(1/2*low_diameter-sqrt(3)/2*low_fixture_width)
+        #low_hexagon = low_hexagon.edges('|Y').fillet(1/2*low_diameter-sqrt(3)/2*low_fixture_width)
         
         high_hexagon = cq.Workplane("ZX",origin=(0,center_part_height/2-high_hexagon_height,0))
         high_hexagon = high_hexagon.polygon(nSides=6,
                                             circumscribed=True,
                                             diameter=high_diameter)
         high_hexagon = high_hexagon.extrude(high_hexagon_height)
-        high_hexagon = high_hexagon.edges('|Y').fillet(1/2*high_diameter-sqrt(3)/2*high_fixture_width)
+        #high_hexagon = high_hexagon.edges('|Y').fillet(1/2*high_diameter-sqrt(3)/2*high_fixture_width)
 
         high_fixtures = cq.Workplane("ZX")
         low_fixtures = cq.Workplane("ZX")
@@ -104,7 +104,7 @@ class OptCenterPart:
                                                         axisEndPoint = (x,1,z),
                                                         angleDegrees = 1/3*180*i)
             high_fixtures_out = high_fixtures_out.edges('|Y').filter(lambda e:e.startPoint().z**2+e.startPoint().x**2 > (x**2+z**2) )
-            high_fixtures_out = high_fixtures_out.fillet(high_thickness)
+            #high_fixtures_out = high_fixtures_out.fillet(high_thickness)
 
             high_fixtures_in = cq.Workplane("ZX",
                                             origin=(x,
@@ -141,7 +141,7 @@ class OptCenterPart:
                                                     angleDegrees = 1/3*180*i)
             
             low_fixtures_out = low_fixtures_out.edges('|Y').filter(lambda e:e.startPoint().z**2+e.startPoint().x**2 > (x**2+z**2) )
-            low_fixtures_out = low_fixtures_out.fillet(low_thickness)
+            #low_fixtures_out = low_fixtures_out.fillet(low_thickness)
 
             low_fixtures_in = cq.Workplane("ZX",
                                         origin=(x,

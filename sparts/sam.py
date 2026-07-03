@@ -115,6 +115,8 @@ class Sam(Sofa.Prefab) :
             legsCollisionMeshData =  [optLeg[i].getCollisionTopologyGmsh(optCenterPart) if i%2!=0 else [None,None] for i in range(n)]
             legsModel = ['beam']*n
             legsName = [optLeg[i].name for i in range(n)]
+            legsWidth = [optLeg[i].crossSection[0] for i in range(n)]
+            legsThickness = [optLeg[i].crossSection[1] for i in range(n)]
         else:
             distances = self.motorsDistanceToCenter.value
             legsPositionOnMotor = self.legsPositionOnMotor.value
@@ -193,6 +195,8 @@ class Sam(Sofa.Prefab) :
                              triangles = legsMeshData[i][1] if i < len(legsMeshData) else legsMeshData[0][1],
                              collisionNodes = legsCollisionMeshData[i][0] if i < len(legsCollisionMeshData) else legsCollisionMeshData[0][0],
                              collisionTriangles = legsCollisionMeshData[i][1] if i < len(legsCollisionMeshData) else legsCollisionMeshData[0][1],
+                             thickness = legsThickness[i] if i < len(legsThickness) else legsThickness[0],
+                             width = legsWidth[i] if i < len(legsWidth) else legsWidth[0],
                              mode = self.mode.value)
 
                 self.legs.append(leg)
